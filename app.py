@@ -1,7 +1,8 @@
 import streamlit as st
 import os
-from google import genai
-from PIL import Image
+import google.genai as genai
+from google.genai import types
+
 import io
 
 # 1. ตั้งค่าหน้าเว็บหน้าตาแอปพลิเคชัน
