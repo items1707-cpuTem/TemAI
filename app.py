@@ -67,7 +67,8 @@ else:
         if uploaded_image is not None:
             # แสดงรูปภาพที่อัปโหลดบนหน้าเว็บ
             img = Image.open(uploaded_image)
-            st.image(img, caption="รูปภาพที่อัปโหลดสำเร็จ", use_column_width=True)
+            st.image(img, caption="รูปภาพที่อัปโหลดสำเร็จ", width="stretch")
+
             
             if st.button("📸 วิเคราะห์รูปภาพ", key="btn_img"):
                 with st.spinner("AI กำลังเพ่งมองและวิเคราะห์รูปภาพสักครู่..."):
