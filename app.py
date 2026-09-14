@@ -1,8 +1,7 @@
 import streamlit as st
-import os
 import google.genai as genai
 from google.genai import types
-
+from PIL import Image  # 👈 เพิ่มบรรทัดนี้เข้าไปเพื่อแก้บั๊ก NameError ครับ
 import io
 
 # 1. ตั้งค่าหน้าเว็บหน้าตาแอปพลิเคชัน
