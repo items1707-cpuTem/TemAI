@@ -63,11 +63,7 @@ with st.sidebar:
     
     # ปุ่มรีเซ็ตล้างความจำเพื่อเริ่มคุยเรื่องใหม่
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
-        if "gemini_chat" in st.session_state:
-            del st.session_state["gemini_chat"]
-        if "gemini_client" in st.session_state:
-            del st.session_state["gemini_client"]
-        st.session_state.chat_display = []
+        st.session_state.gemini_chat_history = []
         st.session_state.image_result = ""
         st.session_state.audio_result = ""
         st.rerun()
@@ -86,21 +82,13 @@ if not api_key:
 else:
     model_name = "gemini-3.6-flash"
 
-    # สร้างคลังเก็บข้อมูลการแสดงผลแชทและการจดจำของระบบ
-    if "chat_display" not in st.session_state:
-        st.session_state.chat_display = []
+    # สร้างคลังเก็บข้อมูลประวัติการคุยแบบสากลของระบบ
+    if "gemini_chat_history" not in st.session_state:
+        st.session_state.gemini_chat_history = []
     if "image_result" not in st.session_state:
         st.session_state.image_result = ""
     if "audio_result" not in st.session_state:
         st.session_state.audio_result = ""
-        
-    # 🛠️ ล็อค Client ให้อยู่ในหน่วยความจำถาวร ป้องกันตัวแปรตายระหว่างการ Rerun หน้าจอ
-    if "gemini_client" not in st.session_state:
-        st.session_state.gemini_client = genai.Client(api_key=api_key)
-        
-    # 🚀 ผูกแชทต่อเนื่องเข้ากับ Client ตัวถาวรในหน่วยความจำ
-    if "gemini_chat" not in st.session_state:
-        st.session_state.gemini_chat = st.session_state.gemini_client.chats.create(model=model_name)
 
     # 4. สร้างแถบแท็บฟังก์ชัน
     tab_text, tab_image, tab_audio = st.tabs([
@@ -122,12 +110,20 @@ else:
             if user_prompt:
                 with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                     try:
-                        # ยิงคำถามผ่านระบบแชทใน Session State ทำให้คุยต่อเนื่องได้ถาวร
-                        response = st.session_state.gemini_chat.send_message(user_prompt)
+                        # 🛠️ ประกาศสร้าง Client และเปิดแชทใหม่สดๆ ทุกครั้งที่กดปุ่ม เพื่อป้องกัน Client Closed
+                        client = genai.Client(api_key=api_key)
                         
-                        # บันทึกข้อมูลเพื่อนำไปวาดหน้าจอด้านบน
-                        st.session_state.chat_display.append(("You", user_prompt))
-                        st.session_state.chat_display.append(("AI", response.text))
+                        # สร้างออบเจกต์แชทโดยการโยนประวัติเก่าทั้งหมดส่งผ่านพารามิเตอร์ history เข้าไป
+                        chat = client.chats.create(
+                            model=model_name,
+                            history=st.session_state.gemini_chat_history
+                        )
+                        
+                        # ส่งข้อความคำถามใหม่เข้าไปในระบบ
+                        response = chat.send_message(user_prompt)
+                        
+                        # ดึงประวัติที่ถูกอัปเดตเรียบร้อยแล้วกลับมาเซฟเก็บไว้ในหน่วยความจำ
+                        st.session_state.gemini_chat_history = chat.get_history()
                         st.rerun() 
                     except Exception as e:
                         st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
@@ -137,13 +133,16 @@ else:
         st.markdown("---")
         st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน
-        if st.session_state.chat_display:
-            for role, text in reversed(st.session_state.chat_display):
-                if role == "You":
-                    st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{text}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{text}</div>", unsafe_allow_html=True)
+        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน โดยแกะโครงสร้างจากประวัติแท้ของ Google
+        if st.session_state.gemini_chat_history:
+            for message in reversed(st.session_state.gemini_chat_history):
+                role = "👤 คุณ" if message.role == "user" else "🤖 AI"
+                bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
+                
+                # ดึงข้อความจากชิ้นส่วนข้อความ (Parts) ออกมาแสดงผล
+                text_content = "".join([part.text for part in message.parts if part.text])
+                
+                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
         else:
             st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
 
@@ -169,8 +168,8 @@ else:
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
                 with st.spinner("⏳ AI กำลังสแกนพิกเซลภาพ..."):
                     try:
-                        # เรียกใช้งานผ่าน gemini_client ในหน่วยความจำชั่วคราว
-                        response = st.session_state.gemini_client.models.generate_content(model=model_name, contents=[img, image_prompt])
+                        client = genai.Client(api_key=api_key)
+                        response = client.models.generate_content(model=model_name, contents=[img, image_prompt])
                         st.session_state.image_result = response.text
                         st.rerun()
                     except Exception as e:
@@ -197,9 +196,9 @@ else:
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
                 with st.spinner("⏳ AI กำลังแกะรหัสสัญญาณเสียง..."):
                     try:
-                        # เรียกใช้งานผ่าน gemini_client ในหน่วยความจำชั่วคราว
-                        audio_file = st.session_state.gemini_client.files.upload(file=uploaded_audio)
-                        response = st.session_state.gemini_client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
+                        client = genai.Client(api_key=api_key)
+                        audio_file = client.files.upload(file=uploaded_audio)
+                        response = client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
                         st.session_state.audio_result = response.text
                         st.rerun()
                     except Exception as e:
