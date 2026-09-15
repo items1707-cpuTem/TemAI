@@ -9,34 +9,43 @@ st.set_page_config(
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
-)
-
-# ใช้ CSS เพื่อเปลี่ยนสีธีม ส่วนโค้ง และกรอบข้อความให้ดูคล้าย ChatGPT
 st.markdown("""
     <style>
+    /* เปลี่ยนสีพื้นหลังหน้าเว็บหลักเป็นสีขาวสะอาดตาสไตล์ ChatGPT Light */
     .stApp {
-        background-color: #212121;
-        color: #eceecf;
+        background-color: #ffffff;
+        color: #202123;
     }
+    /* บังคับให้ตัวหนังสือที่พิมพ์ในกล่องคำถามเป็นสีดำ และพื้นหลังกล่องเป็นสีเทาอ่อน */
+    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
+        color: #000000 !important;
+        background-color: #f0f4f9 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    /* ปรับแต่งปุ่มกดสีเขียว */
     .stButton>button {
-        background-color: #10a37f !important; /* สีเขียวสัญลักษณ์ ChatGPT */
+        background-color: #10a37f !important; 
         color: white !important;
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
         font-weight: bold;
-        transition: 0.3s;
     }
     .stButton>button:hover {
         background-color: #1a7f64 !important;
-        box-shadow: 0 4px 12px rgba(16,163,127,0.3);
     }
+    /* ปรับแต่งกล่องแสดงคำตอบของ AI ให้ตัวหนังสือเป็นสีดำอ่านง่าย */
     .ai-response {
-        background-color: #2f2f2f;
+        background-color: #f7f7f8;
         padding: 20px;
         border-radius: 12px;
         border-left: 5px solid #10a37f;
         margin-top: 15px;
+        color: #000000 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
     }
     </style>
 """, unsafe_allow_html=True)
