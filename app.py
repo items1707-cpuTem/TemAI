@@ -65,6 +65,8 @@ with st.sidebar:
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
         if "gemini_chat" in st.session_state:
             del st.session_state["gemini_chat"]
+        if "gemini_client" in st.session_state:
+            del st.session_state["gemini_client"]
         st.session_state.chat_display = []
         st.session_state.image_result = ""
         st.session_state.audio_result = ""
@@ -82,8 +84,6 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
-    # เริ่มต้น Client ของระบบ
-    client = genai.Client(api_key=api_key)
     model_name = "gemini-3.6-flash"
 
     # สร้างคลังเก็บข้อมูลการแสดงผลแชทและการจดจำของระบบ
@@ -94,9 +94,13 @@ else:
     if "audio_result" not in st.session_state:
         st.session_state.audio_result = ""
         
-    # 🛠️ ใช้ระบบสร้างแชทอัจฉริยะแบบฝังตัวของ Google SDK เพื่อผูกแชทต่อเนื่องแบบไม่มีพัง
+    # 🛠️ ล็อค Client ให้อยู่ในหน่วยความจำถาวร ป้องกันตัวแปรตายระหว่างการ Rerun หน้าจอ
+    if "gemini_client" not in st.session_state:
+        st.session_state.gemini_client = genai.Client(api_key=api_key)
+        
+    # 🚀 ผูกแชทต่อเนื่องเข้ากับ Client ตัวถาวรในหน่วยความจำ
     if "gemini_chat" not in st.session_state:
-        st.session_state.gemini_chat = client.chats.create(model=model_name)
+        st.session_state.gemini_chat = st.session_state.gemini_client.chats.create(model=model_name)
 
     # 4. สร้างแถบแท็บฟังก์ชัน
     tab_text, tab_image, tab_audio = st.tabs([
@@ -118,10 +122,10 @@ else:
             if user_prompt:
                 with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                     try:
-                        # 🚀 สั่งยิงคำถามเข้าในระบบแชทผูกมิตรของ Gemini โดยตรง (มันจำประวัติของมันเองอัตโนมัติ)
+                        # ยิงคำถามผ่านระบบแชทใน Session State ทำให้คุยต่อเนื่องได้ถาวร
                         response = st.session_state.gemini_chat.send_message(user_prompt)
                         
-                        # บันทึกข้อความเก็บไว้ในหน่วยความจำเพื่อนำไปวาดหน้าจอ
+                        # บันทึกข้อมูลเพื่อนำไปวาดหน้าจอด้านบน
                         st.session_state.chat_display.append(("You", user_prompt))
                         st.session_state.chat_display.append(("AI", response.text))
                         st.rerun() 
@@ -133,7 +137,7 @@ else:
         st.markdown("---")
         st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        # แสดงผลแบบย้อนกลับ (Reversed) เอาข้อความล่าสุดไว้ด้านบนสุด
+        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน
         if st.session_state.chat_display:
             for role, text in reversed(st.session_state.chat_display):
                 if role == "You":
@@ -165,7 +169,8 @@ else:
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
                 with st.spinner("⏳ AI กำลังสแกนพิกเซลภาพ..."):
                     try:
-                        response = client.models.generate_content(model=model_name, contents=[img, image_prompt])
+                        # เรียกใช้งานผ่าน gemini_client ในหน่วยความจำชั่วคราว
+                        response = st.session_state.gemini_client.models.generate_content(model=model_name, contents=[img, image_prompt])
                         st.session_state.image_result = response.text
                         st.rerun()
                     except Exception as e:
@@ -192,8 +197,9 @@ else:
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
                 with st.spinner("⏳ AI กำลังแกะรหัสสัญญาณเสียง..."):
                     try:
-                        audio_file = client.files.upload(file=uploaded_audio)
-                        response = client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
+                        # เรียกใช้งานผ่าน gemini_client ในหน่วยความจำชั่วคราว
+                        audio_file = st.session_state.gemini_client.files.upload(file=uploaded_audio)
+                        response = st.session_state.gemini_client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
                         st.session_state.audio_result = response.text
                         st.rerun()
                     except Exception as e:
