@@ -3,26 +3,33 @@ import google.genai as genai
 from google.genai import types
 from PIL import Image
 
-# 🎨 1. ตั้งค่าหน้าเว็บและการตกแต่งสไตล์ ChatGPT โมเดิร์น
+# 1. ตั้งค่าหน้าเว็บและการตกแต่งสไตล์ ChatGPT Light Mode
 st.set_page_config(
     page_title="Gemini Multimodal AI",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded"
+)
+
+# ใช้ CSS ปรับแต่งพื้นหลังขาว และบังคับตัวอักษรทุกจุดเป็นสีดำคมชัด
 st.markdown("""
     <style>
-    /* เปลี่ยนสีพื้นหลังหน้าเว็บหลักเป็นสีขาวสะอาดตาสไตล์ ChatGPT Light */
+    /* เปลี่ยนพื้นหลังหลักเป็นสีขาว */
     .stApp {
         background-color: #ffffff;
         color: #202123;
     }
-    /* บังคับให้ตัวหนังสือที่พิมพ์ในกล่องคำถามเป็นสีดำ และพื้นหลังกล่องเป็นสีเทาอ่อน */
+    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามให้เป็นสีดำสนิท */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         color: #000000 !important;
         background-color: #f0f4f9 !important;
         -webkit-text-fill-color: #000000 !important;
     }
-    /* ปรับแต่งปุ่มกดสีเขียว */
+    /* บังคับสีตัวอักษรป้ายหัวข้อของกล่องพิมพ์คำถามให้เป็นสีดำ */
+    label, p, span, h1, h2, h3, h4, h5, h6 {
+        color: #000000 !important;
+    }
+    /* ปรับแต่งปุ่มกดสีเขียวสไตล์ ChatGPT */
     .stButton>button {
         background-color: #10a37f !important; 
         color: white !important;
@@ -30,11 +37,13 @@ st.markdown("""
         border: none !important;
         padding: 10px 24px !important;
         font-weight: bold;
+        transition: 0.3s;
     }
     .stButton>button:hover {
         background-color: #1a7f64 !important;
+        box-shadow: 0 4px 12px rgba(16,163,127,0.3);
     }
-    /* ปรับแต่งกล่องแสดงคำตอบของ AI ให้ตัวหนังสือเป็นสีดำอ่านง่าย */
+    /* ปรับแต่งกล่องแสดงคำตอบของ AI ให้มีพื้นหลังเทาอ่อน ตัวหนังสือสีดำ */
     .ai-response {
         background-color: #f7f7f8;
         padding: 20px;
@@ -46,11 +55,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-    
-    </style>
-""", unsafe_allow_html=True)
-
-# 🔑 2. แถบเมนูด้านซ้าย (Sidebar) สำหรับจัดการสิทธิ์
+# 2. แถบเมนูด้านซ้าย (Sidebar) สำหรับกรอกสิทธิ์เข้าใช้งาน
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
     api_key = st.text_input("🔑 ใส่ Gemini API Key ของคุณ:", type="password", placeholder="AIzaSy...")
@@ -58,12 +63,12 @@ with st.sidebar:
     st.markdown("🤖 **ระบบขับเคลื่อนโดย:** Gemini 3.6 Flash")
     st.markdown("💡 *โมเดลรุ่นใหม่ล่าสุด รองรับไฟล์มัลติมีเดียความเร็วสูง*")
 
-# 🏠 3. ส่วนหัวเว็บไซต์หลัก
+# 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
 st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ ดึงข้อมูลจาก**ข้อความ รูปภาพ และเสียง** ได้ในที่เดียวแบบฟรีๆ")
 st.markdown("---")
 
-# 🚨 ตรวจสอบการใส่ API Key ล่วงหน้าก่อนเริ่มระบบ
+# ตรวจสอบการใส่ API Key ล่วงหน้าก่อนเริ่มระบบ
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
@@ -71,7 +76,7 @@ else:
     client = genai.Client(api_key=api_key)
     model_name = "gemini-3.6-flash"
 
-    # 📑 4. สร้างแถบแท็บฟังก์ชันสไตล์ไอคอนสวยงามใช้งานง่าย
+    # 4. สร้างแถบแท็บฟังก์ชันสไตล์ไอคอนสวยงามใช้งานง่าย
     tab_text, tab_image, tab_audio = st.tabs([
         "💬 ถามตอบด้วยข้อความ", 
         "🖼️ วิเคราะห์และอ่านรูปภาพ", 
@@ -137,7 +142,6 @@ else:
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
                 with st.spinner("⏳ AI กำลังฟังและถอดรหัสคลื่นความถี่เสียง..."):
                     try:
-                        # อัปโหลดไฟล์เสียงไปยัง Cloud File API ของ Google
                         audio_file = client.files.upload(file=uploaded_audio)
                         response = client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
                         st.markdown("<div class='ai-response'>", unsafe_allow_html=True)
