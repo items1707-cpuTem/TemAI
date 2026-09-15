@@ -3,33 +3,29 @@ import google.genai as genai
 from google.genai import types
 from PIL import Image
 
-# 1. ตั้งค่าหน้าเว็บและการตกแต่งสไตล์ ChatGPT Light Mode
+# 1. ตั้งค่าหน้าเว็บสไตล์ ChatGPT Light Mode
 st.set_page_config(
-    page_title="Gemini Multimodal AI",
-    page_icon="✨",
+    page_title="Gemini Chatbot AI",
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ใช้ CSS ปรับแต่งพื้นหลังขาว และบังคับตัวอักษรทุกจุดเป็นสีดำคมชัด
+# ปรับ CSS ให้ตัวหนังสือเป็นสีดำคมชัด และทำสไตล์กล่องข้อความให้สวยงาม
 st.markdown("""
     <style>
-    /* เปลี่ยนพื้นหลังหลักเป็นสีขาว */
     .stApp {
         background-color: #ffffff;
         color: #202123;
     }
-    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามให้เป็นสีดำสนิท */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         color: #000000 !important;
         background-color: #f0f4f9 !important;
         -webkit-text-fill-color: #000000 !important;
     }
-    /* บังคับสีตัวอักษรป้ายหัวข้อของกล่องพิมพ์คำถามให้เป็นสีดำ */
     label, p, span, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
     }
-    /* ปรับแต่งปุ่มกดสีเขียวสไตล์ ChatGPT */
     .stButton>button {
         background-color: #10a37f !important; 
         color: white !important;
@@ -37,31 +33,43 @@ st.markdown("""
         border: none !important;
         padding: 10px 24px !important;
         font-weight: bold;
-        transition: 0.3s;
     }
-    .stButton>button:hover {
-        background-color: #1a7f64 !important;
-        box-shadow: 0 4px 12px rgba(16,163,127,0.3);
+    /* กล่องข้อความฝั่งผู้ใช้ */
+    .user-bubble {
+        background-color: #f0f4f9;
+        padding: 12px 18px;
+        border-radius: 15px;
+        margin: 10px 0;
+        border-right: 5px solid #1a7f64;
+        color: #000000;
     }
-    /* ปรับแต่งกล่องแสดงคำตอบของ AI ให้มีพื้นหลังเทาอ่อน ตัวหนังสือสีดำ */
-    .ai-response {
+    /* กล่องคำตอบฝั่ง AI */
+    .ai-bubble {
         background-color: #f7f7f8;
-        padding: 20px;
-        border-radius: 12px;
+        padding: 15px 20px;
+        border-radius: 15px;
+        margin: 10px 0 25px 0;
         border-left: 5px solid #10a37f;
-        margin-top: 15px;
-        color: #000000 !important;
+        color: #000000;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. แถบเมนูด้านซ้าย (Sidebar) สำหรับกรอกสิทธิ์เข้าใช้งาน
+# 2. แถบเมนูด้านซ้าย (Sidebar)
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
     api_key = st.text_input("🔑 ใส่ Gemini API Key ของคุณ:", type="password", placeholder="AIzaSy...")
     st.markdown("---")
+    
+    # ปุ่มรีเซ็ตล้างความจำเพื่อเริ่มคุยเรื่องใหม่
+    if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
+        st.session_state.chat_history = []
+        st.session_state.image_result = ""
+        st.session_state.audio_result = ""
+        st.rerun()
+        
+    st.markdown("---")
     st.markdown("🤖 **ระบบขับเคลื่อนโดย:** Gemini 3.6 Flash")
-    st.markdown("💡 *โมเดลรุ่นใหม่ล่าสุด รองรับไฟล์มัลติมีเดียความเร็วสูง*")
 
 # 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
@@ -72,81 +80,122 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
-    # เริ่มต้นเชื่อมต่อกับเซิร์ฟเวอร์ Google AI
     client = genai.Client(api_key=api_key)
     model_name = "gemini-3.6-flash"
 
-    # 4. สร้างแถบแท็บฟังก์ชันสไตล์ไอคอนสวยงามใช้งานง่าย
+    # ระบบจดจำประวัติของ Streamlit (Session State)
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "image_result" not in st.session_state:
+        st.session_state.image_result = ""
+    if "audio_result" not in st.session_state:
+        st.session_state.audio_result = ""
+
+    # 4. สร้างแถบแท็บฟังก์ชัน
     tab_text, tab_image, tab_audio = st.tabs([
-        "💬 ถามตอบด้วยข้อความ", 
+        "💬 ถามตอบด้วยข้อความ (ระบบแชทต่อเนื่อง)", 
         "🖼️ วิเคราะห์และอ่านรูปภาพ", 
         "🎵 ถอดความสรุปจากเสียง"
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - เรียงจากล่าสุดอยู่บน)
     # ===================================================
     with tab_text:
-        st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไป")
-        user_prompt = st.text_area("ป้อนข้อความคำถาม หรือเรื่องที่อยากรวบรวมข้อมูล:", placeholder="พิมพ์คำถามของคุณตรงนี้ เช่น แนะนำวิธีประหยัดไฟมา 3 ข้อ...")
+        st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
+        
+        # ส่วนล่างสุด: วางกล่องพิมพ์ถามไว้ตรงนี้เพื่อให้พิมพ์ง่าย ไม่ต้องเลื่อนจอขึ้นไปข้างบน
+        st.markdown("#### 👇 พิมพ์คำถามใหม่ของคุณที่นี่:")
+        user_prompt = st.text_area("ป้อนคำถามของคุณ (เช่น แนะนำวิธีทำอาหารง่ายๆ, อธิบายโปรแกรมนี้หน่อย):", key="chat_input", placeholder="พิมพ์ข้อความคำถาม...")
         
         if st.button("🚀 ส่งคำถามไปยัง AI", key="btn_text"):
             if user_prompt:
-                with st.spinner("⏳ กำลังค้นหาและประมวลผลข้อมูล..."):
+                with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                     try:
-                        response = client.models.generate_content(model=model_name, contents=user_prompt)
-                        st.markdown("<div class='ai-response'>", unsafe_allow_html=True)
-                        st.markdown("#### 🤖 คำตอบจาก AI:")
-                        st.write(response.text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        # สร้าง Context สนทนาแบบต่อเนื่องจากประวัติเก่า
+                        messages = []
+                        for role, text in st.session_state.chat_history:
+                            messages.append({"role": "user" if role == "You" else "model", "parts": [text]})
+                        messages.append({"role": "user", "parts": [user_prompt]})
+                        
+                        response = client.models.generate_content(model=model_name, contents=messages)
+                        
+                        # บันทึกคำถามและคำตอบลงในหน่วยความจำ (แอดของใหม่เข้าไปต่อท้าย)
+                        st.session_state.chat_history.append(("You", user_prompt))
+                        st.session_state.chat_history.append(("AI", response.text))
+                        st.rerun() # สั่งรีเฟรชหน้าจอเพื่อแสดงผลทันที
                     except Exception as e:
                         st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
             else:
                 st.info("💡 โปรดพิมพ์คำถามลงในกล่องข้อความก่อนกดส่งครับ")
+
+        st.markdown("---")
+        st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
+        
+        # 🔴 จุดเด่น: วนลูปย้อนกลับ (Reversed) เพื่อให้ข้อความคู่ล่าสุดขึ้นมาแสดงอยู่ด้านบนสุด!
+        if st.session_state.chat_history:
+            for role, text in reversed(st.session_state.chat_history):
+                if role == "You":
+                    st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{text}</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{text}</div>", unsafe_allow_html=True)
+        else:
+            st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
 
     # ===================================================
     # แท็บที่ 2: ระบบรูปภาพ (Vision)
     # ===================================================
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
-        uploaded_image = st.file_uploader("เลือกอัปโหลดรูปภาพของคุณ (รองรับ .jpg, .jpeg, .png):", type=["jpg", "jpeg", "png"])
         
+        # วางช่องผลลัพธ์การวิเคราะห์ไว้ด้านบน
+        if st.session_state.image_result:
+            st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
+            st.markdown("#### 🤖 ผลการวิเคราะห์รูปภาพล่าสุด:")
+            st.write(st.session_state.image_result)
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("---")
+            
+        uploaded_image = st.file_uploader("เลือกอัปโหลดรูปภาพของคุณ:", type=["jpg", "jpeg", "png"])
         if uploaded_image:
             img = Image.open(uploaded_image)
             st.image(img, caption="📷 รูปภาพที่คุณอัปโหลด", width="stretch")
-            
-            image_prompt = st.text_input("ระบุสิ่งที่คุณต้องการให้ AI ค้นหาหรือแกะข้อมูลจากภาพนี้:", value="ภาพนี้คือภาพเกี่ยวกับอะไร? อธิบายรายละเอียดของสิ่งของและองค์ประกอบในภาพมาสั้นๆ")
+            image_prompt = st.text_input("ระบุสิ่งที่คุณต้องการให้ AI ค้นหาจากภาพ:", value="ภาพนี้คือภาพเกี่ยวกับอะไร? ช่วยอธิบายสั้นๆ")
             
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
-                with st.spinner("⏳ AI กำลังสแกนและตรวจสอบพิกเซลภาพ..."):
+                with st.spinner("⏳ AI กำลังสแกนพิกเซลภาพ..."):
                     try:
                         response = client.models.generate_content(model=model_name, contents=[img, image_prompt])
-                        st.markdown("<div class='ai-response'>", unsafe_allow_html=True)
-                        st.markdown("#### 🤖 ผลการวิเคราะห์รูปภาพ:")
-                        st.write(response.text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        st.session_state.image_result = response.text
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาดทางเทคนิค: {e}")
+                        st.error(f"เกิดข้อผิดพลาด: {e}")
 
     # ===================================================
     # แท็บที่ 3: ระบบไฟล์เสียง (Audio)
     # ===================================================
     with tab_audio:
         st.markdown("### 🎵 สรุปและแกะเสียงข้อความ")
-        uploaded_audio = st.file_uploader("เลือกอัปโหลดไฟล์เสียงของคุณ (รองรับ .mp3, .wav):", type=["mp3", "wav"])
         
+        # วางช่องผลลัพธ์จากเสียงไว้ด้านบนสุด
+        if st.session_state.audio_result:
+            st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
+            st.markdown("#### 🤖 สรุปใจความสำคัญจากไฟล์เสียงล่าสุด:")
+            st.write(st.session_state.audio_result)
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("---")
+            
+        uploaded_audio = st.file_uploader("เลือกอัปโหลดไฟล์เสียงของคุณ:", type=["mp3", "wav"])
         if uploaded_audio:
             st.audio(uploaded_audio)
-            audio_prompt = st.text_input("ระบุเป้าหมายในการถอดรหัสเสียง:", value="สรุปใจความสำคัญจากไฟล์เสียงนี้อย่างละเอียด แยกมาเป็นข้อๆ พร้อมถอดรหัสคำพูดข้อความออกมาถ้ามี")
+            audio_prompt = st.text_input("ระบุเป้าหมายในการถอดรหัสเสียง:", value="สรุปใจความสำคัญจากไฟล์เสียงนี้มาเป็นข้อๆ")
             
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
-                with st.spinner("⏳ AI กำลังฟังและถอดรหัสคลื่นความถี่เสียง..."):
+                with st.spinner("⏳ AI กำลังแกะรหัสสัญญาณเสียง..."):
                     try:
                         audio_file = client.files.upload(file=uploaded_audio)
                         response = client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
-                        st.markdown("<div class='ai-response'>", unsafe_allow_html=True)
-                        st.markdown("#### 🤖 สรุปใจความสำคัญจากไฟล์เสียง:")
-                        st.write(response.text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        st.session_state.audio_result = response.text
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาดในการอ่านไฟล์เสียง: {e}")
+                        st.error(f"เกิดข้อผิดพลาด: {e}")
