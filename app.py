@@ -63,7 +63,9 @@ with st.sidebar:
     
     # ปุ่มรีเซ็ตล้างความจำเพื่อเริ่มคุยเรื่องใหม่
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
-        st.session_state.chat_history = []
+        if "gemini_chat" in st.session_state:
+            del st.session_state["gemini_chat"]
+        st.session_state.chat_display = []
         st.session_state.image_result = ""
         st.session_state.audio_result = ""
         st.rerun()
@@ -80,16 +82,21 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
+    # เริ่มต้น Client ของระบบ
     client = genai.Client(api_key=api_key)
     model_name = "gemini-3.6-flash"
 
-    # ระบบจดจำประวัติของ Streamlit (Session State)
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+    # สร้างคลังเก็บข้อมูลการแสดงผลแชทและการจดจำของระบบ
+    if "chat_display" not in st.session_state:
+        st.session_state.chat_display = []
     if "image_result" not in st.session_state:
         st.session_state.image_result = ""
     if "audio_result" not in st.session_state:
         st.session_state.audio_result = ""
+        
+    # 🛠️ ใช้ระบบสร้างแชทอัจฉริยะแบบฝังตัวของ Google SDK เพื่อผูกแชทต่อเนื่องแบบไม่มีพัง
+    if "gemini_chat" not in st.session_state:
+        st.session_state.gemini_chat = client.chats.create(model=model_name)
 
     # 4. สร้างแถบแท็บฟังก์ชัน
     tab_text, tab_image, tab_audio = st.tabs([
@@ -99,7 +106,7 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - เรียงจากล่าสุดอยู่บน)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ล่างพิมพ์ บนตอบ)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -111,32 +118,12 @@ else:
             if user_prompt:
                 with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                     try:
-                        # 🛠️ แก้ไขจุดนี้: แปลงประวัติการคุยให้เป็น Object ของประเภทข้อมูลใหม่ที่ถูกต้องตามหลักสากลของ SDK
-                        formatted_messages = []
-                        for role, text in st.session_state.chat_history:
-                            formatted_messages.append(
-                                types.Content(
-                                    role="user" if role == "You" else "model",
-                                    parts=[types.Part.from_text(text=text)]
-                                )
-                            )
-                        # เพิ่มคำถามล่าสุดเข้าไปในลิสต์ส่งคำนวณ
-                        formatted_messages.append(
-                            types.Content(
-                                role="user",
-                                parts=[types.Part.from_text(text=user_prompt)]
-                            )
-                        )
+                        # 🚀 สั่งยิงคำถามเข้าในระบบแชทผูกมิตรของ Gemini โดยตรง (มันจำประวัติของมันเองอัตโนมัติ)
+                        response = st.session_state.gemini_chat.send_message(user_prompt)
                         
-                        # ส่งข้อมูลแชททั้งหมดไปยังโมเดล
-                        response = client.models.generate_content(
-                            model=model_name, 
-                            contents=formatted_messages
-                        )
-                        
-                        # บันทึกคำถามและคำตอบลงในหน่วยความจำของแอป
-                        st.session_state.chat_history.append(("You", user_prompt))
-                        st.session_state.chat_history.append(("AI", response.text))
+                        # บันทึกข้อความเก็บไว้ในหน่วยความจำเพื่อนำไปวาดหน้าจอ
+                        st.session_state.chat_display.append(("You", user_prompt))
+                        st.session_state.chat_display.append(("AI", response.text))
                         st.rerun() 
                     except Exception as e:
                         st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
@@ -146,8 +133,9 @@ else:
         st.markdown("---")
         st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        if st.session_state.chat_history:
-            for role, text in reversed(st.session_state.chat_history):
+        # แสดงผลแบบย้อนกลับ (Reversed) เอาข้อความล่าสุดไว้ด้านบนสุด
+        if st.session_state.chat_display:
+            for role, text in reversed(st.session_state.chat_display):
                 if role == "You":
                     st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{text}</div>", unsafe_allow_html=True)
                 else:
