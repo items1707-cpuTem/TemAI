@@ -104,7 +104,6 @@ else:
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
         
-        # ส่วนล่างสุด: วางกล่องพิมพ์ถามไว้ตรงนี้เพื่อให้พิมพ์ง่าย ไม่ต้องเลื่อนจอขึ้นไปข้างบน
         st.markdown("#### 👇 พิมพ์คำถามใหม่ของคุณที่นี่:")
         user_prompt = st.text_area("ป้อนคำถามของคุณ (เช่น แนะนำวิธีทำอาหารง่ายๆ, อธิบายโปรแกรมนี้หน่อย):", key="chat_input", placeholder="พิมพ์ข้อความคำถาม...")
         
@@ -112,18 +111,33 @@ else:
             if user_prompt:
                 with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                     try:
-                        # สร้าง Context สนทนาแบบต่อเนื่องจากประวัติเก่า
-                        messages = []
+                        # 🛠️ แก้ไขจุดนี้: แปลงประวัติการคุยให้เป็น Object ของประเภทข้อมูลใหม่ที่ถูกต้องตามหลักสากลของ SDK
+                        formatted_messages = []
                         for role, text in st.session_state.chat_history:
-                            messages.append({"role": "user" if role == "You" else "model", "parts": [text]})
-                        messages.append({"role": "user", "parts": [user_prompt]})
+                            formatted_messages.append(
+                                types.Content(
+                                    role="user" if role == "You" else "model",
+                                    parts=[types.Part.from_text(text=text)]
+                                )
+                            )
+                        # เพิ่มคำถามล่าสุดเข้าไปในลิสต์ส่งคำนวณ
+                        formatted_messages.append(
+                            types.Content(
+                                role="user",
+                                parts=[types.Part.from_text(text=user_prompt)]
+                            )
+                        )
                         
-                        response = client.models.generate_content(model=model_name, contents=messages)
+                        # ส่งข้อมูลแชททั้งหมดไปยังโมเดล
+                        response = client.models.generate_content(
+                            model=model_name, 
+                            contents=formatted_messages
+                        )
                         
-                        # บันทึกคำถามและคำตอบลงในหน่วยความจำ (แอดของใหม่เข้าไปต่อท้าย)
+                        # บันทึกคำถามและคำตอบลงในหน่วยความจำของแอป
                         st.session_state.chat_history.append(("You", user_prompt))
                         st.session_state.chat_history.append(("AI", response.text))
-                        st.rerun() # สั่งรีเฟรชหน้าจอเพื่อแสดงผลทันที
+                        st.rerun() 
                     except Exception as e:
                         st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
             else:
@@ -132,7 +146,6 @@ else:
         st.markdown("---")
         st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        # 🔴 จุดเด่น: วนลูปย้อนกลับ (Reversed) เพื่อให้ข้อความคู่ล่าสุดขึ้นมาแสดงอยู่ด้านบนสุด!
         if st.session_state.chat_history:
             for role, text in reversed(st.session_state.chat_history):
                 if role == "You":
@@ -148,7 +161,6 @@ else:
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
         
-        # วางช่องผลลัพธ์การวิเคราะห์ไว้ด้านบน
         if st.session_state.image_result:
             st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
             st.markdown("#### 🤖 ผลการวิเคราะห์รูปภาพล่าสุด:")
@@ -177,7 +189,6 @@ else:
     with tab_audio:
         st.markdown("### 🎵 สรุปและแกะเสียงข้อความ")
         
-        # วางช่องผลลัพธ์จากเสียงไว้ด้านบนสุด
         if st.session_state.audio_result:
             st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
             st.markdown("#### 🤖 สรุปใจความสำคัญจากไฟล์เสียงล่าสุด:")
