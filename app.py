@@ -14,9 +14,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 อัปเดต CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
+# 🎨 CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
 st.markdown("""
     <style>
+    /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
     @import url('https://googleapis.com');
     
     html, body, [data-testid="stSidebar"], .stApp, p, label, li, span, h1, h2, h3, h4, h5, h6 {
@@ -106,7 +107,6 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
-        # แปลงข้อความให้อยู่ในรูปแบบดิกชันนารีธรรมดาเพื่อให้ Pickle บันทึกได้ง่าย
         serializable_data = {}
         for session_id, chat_list in all_chats.items():
             serializable_data[session_id] = []
@@ -162,7 +162,7 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # 🔴 ปุ่มเริ่มห้องแชทใหม่ (+ New Chat)
+    # ปุ่มเริ่มห้องแชทใหม่ (+ New Chat)
     if st.button("➕ เริ่มต้นแชทใหม่ (New Chat)", key="new_chat_btn"):
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
         st.session_state.all_chats[st.session_state.current_session_id] = []
@@ -171,23 +171,20 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("📂 **ประวัติคำถามเก่าของคุณ:**")
     
-    # 🔴 ลูปสร้างปุ่มเรียกดูประวัติคำถามเก่า
+    # ลูปสร้างปุ่มเรียกดูประวัติคำถามเก่า
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
-        # ดึงประโยคแรกที่คุณพิมพ์ถามมาทำเป็นชื่อปุ่ม ถ้ายังไม่เคยคุยให้ใช้คำว่า "ห้องแชทว่างเปล่า"
         if chat_history:
             first_user_msg = "".join([part.text for part in chat_history[0].parts if part.text])
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
             
-        # ตรวจจับว่าถ้ากำลังเปิดห้องนี้อยู่ ให้ใส่สัญลักษณ์พิเศษกำบับไว้
         if session_id == st.session_state.current_session_id:
             button_label = f"💬 👉 {button_label}"
         else:
             button_label = f"💬 {button_label}"
             
-        # เมื่อกดปุ่มประวัติเก่า จะสั่งสลับ ID ห้องแชททันที
         if st.sidebar.button(button_label, key=f"session_{session_id}"):
             st.session_state.current_session_id = session_id
             st.rerun()
@@ -258,3 +255,10 @@ else:
             live_scroll()
             
             with chat_container:
+                response_placeholder = st.empty()
+                
+            client = genai.Client(api_key=api_key)
+            full_response_text = ""
+            
+            messages_to_send = []
+            for msg in current_chat_history:
