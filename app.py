@@ -216,7 +216,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบตอบกลับเสร็จสมบูรณ์)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระเบียบล็อก try-except สมบูรณ์)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -245,7 +245,7 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
-            # 🛠️ จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบ Google อย่างเป็นทางการ ป้องกัน AI นิ่งเงียบ
+            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
             messages_to_send = []
             for msg in current_chat_history:
                 messages_to_send.append(
@@ -256,10 +256,12 @@ else:
                 )
             
             try:
-                # สร้าง Session แชทแท้หลังบ้านและยิงคำสั่งแบบสตรีมมิ่งพิมพ์ทีละบรรทัด
                 chat = client.chats.create(model=primary_model, history=messages_to_send)
                 response_stream = chat.send_message_stream(user_prompt)
-                
                 for chunk in response_stream:
                     if chunk.text:
                         full_response_text += chunk.text
+                        response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
+                        live_scroll()
+                        time.sleep(0.01)
+            except Exception as e:
