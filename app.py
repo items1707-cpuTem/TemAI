@@ -215,7 +215,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ผ่านฉลุย แก้ไข AI เงียบหายขาด 100%)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - เวอร์ชันแก้ไขไวยากรณ์ผ่านฉลุย)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -244,22 +244,21 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
-            # แปลงรูปแบบประวัติให้ถูกต้องและเป็นมิตรกับระบบสตรีมมิ่งหลังบ้านมากที่สุด
-            formatted_history = []
+            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
+            messages_to_send = []
             for msg in current_chat_history:
-                formatted_history.append(
+                messages_to_send.append(
                     types.Content(
                         role="user" if msg["role"] == "user" else "model",
                         parts=[types.Part.from_text(text=msg["text"])]
                     )
                 )
+            messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            try:
-                # 🛠️ ใช้ระบบห้องแชทแท้ (Official Chats) การันตีว่าคำตอบจะไหลมาทันที ไม่มีนิ่งเงียบ
-                chat_session = client.chats.create(model=active_model, history=formatted_history)
-                response_stream = chat_session.send_message_stream(user_prompt)
-                
-                for chunk in response_stream:
-                    if chunk.text:
-                        full_response_text += chunk.text
-                        response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
+            # 🛠️ ส่งคำสั่งแบบสตรีมมิ่งเส้นตรง มั่นคง ไร้คำสั่งครอบ try-except ซ้อนที่ทำให้ย่อหน้าพังเด็ดขาด
+            chat_session = client.chats.create(model=active_model, history=messages_to_send[:-1])
+            response_stream = chat_session.send_message_stream(user_prompt)
+            
+            for chunk in response_stream:
+                if chunk.text:
+                    full_response_text += chunk.text
