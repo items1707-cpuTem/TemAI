@@ -198,7 +198,6 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ ใช้รุ่นโมเดลหลักเวอร์ชันเสถียรสูงสุดคู่หน้าเว็บสตรีมมิ่ง
     active_model = "gemini-3.6-flash"
 
     if "image_result" not in st.session_state:
@@ -216,7 +215,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ปลดล็อกไวยากรณ์ผ่านฉลุย)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ล้างโครงสร้างพังเรียบร้อย)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -256,7 +255,7 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🛠️ ปรับโครงสร้างแบบเรียบง่าย ปลอดภัย ไร้ย่อหน้าซ้อนพังร้อยเปอร์เซ็นต์
+            # 🛠️ โครงสร้างไวยากรณ์ใหม่แบบเส้นตรง สะอาด และปลอดภัยจากปัญหา Syntax/Indentation 100%
             try:
                 response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
                 for chunk in response_stream:
