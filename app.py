@@ -131,7 +131,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = chat_history["text"]
+            first_user_msg = chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -163,8 +163,8 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ เปลี่ยนชื่อโมเดลเป็นรุ่นมาตรฐาน gemini-2.0-flash ที่รองรับจริง
-    active_model = "gemini-2.0-flash"
+    # 🔴 อัปเดตเปลี่ยนมาใช้ชื่อรุ่นโมเดลใหม่ล่าสุดตามประกาศของ Google
+    active_model = "gemini-3.6-flash"
 
     if "image_result" not in st.session_state:
         st.session_state.image_result = ""
@@ -201,14 +201,14 @@ else:
             
             client = genai.Client(api_key=api_key)
             
-            # รวมข้อความทั้งหมดเป็นชุดเดียวเพื่อส่งให้ AI ประมวลผลแบบเสถียรแน่นอน
+            # รวมประวัติแชทเก่าและคำถามใหม่ให้เป็นสตรีงบรรทัดเดียว เพื่อให้โมเดลใหม่ตอบรับ 100%
             full_prompt_content = ""
             for msg in current_chat_history:
                 full_prompt_content += f"{msg['role']}: {msg['text']}\n"
             full_prompt_content += f"user: {user_prompt}"
             
             try:
-                # 🛠️ ใช้คำสั่งมาตรฐาน generate_content เพื่อการันตีการตอบกลับทันที ไม่หลุดสตรีม
+                # เรียกประมวลผลผ่านโมเดลตัวใหม่ตามกฎการเชื่อมต่อของ Google 
                 response = client.models.generate_content(
                     model=active_model,
                     contents=full_prompt_content
@@ -249,4 +249,3 @@ else:
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
                 client = genai.Client(api_key=api_key)
                 audio_file = client.files.upload(file=uploaded_audio)
-                response = client.models.generate_content(model=active_model, contents=[audio_file, audio_prompt])
