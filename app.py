@@ -220,7 +220,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - เวอร์ชันตัดลูปพังทิ้งถาวร)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - เวอร์ชันแก้ไขสำเร็จถามตอบได้จริง)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -243,6 +243,12 @@ else:
                 st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
             live_scroll()
             
+            with chat_container:
+                response_placeholder = st.empty()
+                
+            client = genai.Client(api_key=api_key)
+            full_response_text = ""
+            
             # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
             messages_to_send = []
             for msg in current_chat_history:
@@ -254,10 +260,6 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # ฟังก์ชันตัวช่วยดักจับสตรีมมิ่งเพื่อป้อนให้ st.write_stream อ่านทีละประโยคแบบไร้ลูปพัง
-            def response_generator():
-                client_instance = genai.Client(api_key=api_key)
-                response_stream = client_instance.models.generate_content_stream(model=active_model, contents=messages_to_send)
-                for chunk in response_stream:
-                    if chunk.text:
-                        yield chunk.text
+            # 🛠️ ส่งระบบทำงานแบบดั้งเดิมสากล ปราศจากลูปพังและย่อหน้าเบี้ยว 100%
+            try:
+                response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
