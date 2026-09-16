@@ -17,7 +17,6 @@ st.set_page_config(
 # 🎨 อัปเดต CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
 st.markdown("""
     <style>
-    /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
     @import url('https://googleapis.com');
     
     html, body, [data-testid="stSidebar"], .stApp, p, label, li, span, h1, h2, h3, h4, h5, h6 {
@@ -58,6 +57,7 @@ st.markdown("""
         padding: 10px 24px !important;
         font-weight: bold;
         font-family: 'Sarabun', sans-serif !important;
+        width: 100%;
     }
     
     /* จัดระเบียบกล่องแชทฝั่งผู้ใช้ให้อ่านง่าย */
@@ -101,72 +101,117 @@ def live_scroll():
         </script>
     """, unsafe_allow_html=True)
 
-# 💾 ระบบจัดเก็บประวัติลงในเครื่องเซิร์ฟเวอร์แบบถาวร (Persistent)
-HISTORY_FILE = "persistent_chat_history.pkl"
+# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงในดิสก์เซิร์ฟเวอร์แบบถาวร
+ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
-def save_history_to_disk(history_data):
+def save_all_chats_to_disk(all_chats):
     try:
-        simplified_history = []
-        for msg in history_data:
-            text_content = "".join([part.text for part in msg.parts if part.text])
-            simplified_history.append({"role": msg.role, "text": text_content})
-        with open(HISTORY_FILE, "wb") as f:
-            pickle.dump(simplified_history, f)
+        # แปลงข้อความให้อยู่ในรูปแบบดิกชันนารีธรรมดาเพื่อให้ Pickle บันทึกได้ง่าย
+        serializable_data = {}
+        for session_id, chat_list in all_chats.items():
+            serializable_data[session_id] = []
+            for msg in chat_list:
+                text_content = "".join([part.text for part in msg.parts if part.text])
+                serializable_data[session_id].append({"role": msg.role, "text": text_content})
+        with open(ALL_CHATS_FILE, "wb") as f:
+            pickle.dump(serializable_data, f)
     except:
         pass
 
-def load_history_from_disk():
-    if os.path.exists(HISTORY_FILE):
+def load_all_chats_from_disk():
+    if os.path.exists(ALL_CHATS_FILE):
         try:
-            with open(HISTORY_FILE, "rb") as f:
-                simplified_history = pickle.load(f)
-            restored_history = []
-            for item in simplified_history:
-                restored_history.append(
-                    types.Content(role=item["role"], parts=[types.Part.from_text(text=item["text"])])
-                )
-            return restored_history
+            with open(ALL_CHATS_FILE, "rb") as f:
+                serializable_data = pickle.load(f)
+            all_chats = {}
+            for session_id, chat_list in serializable_data.items():
+                all_chats[session_id] = []
+                for item in chat_list:
+                    all_chats[session_id].append(
+                        types.Content(role=item["role"], parts=[types.Part.from_text(text=item["text"])])
+                    )
+            return all_chats
         except:
-            return []
-    return []
+            return {}
+    return {}
 
-# 🔑 ดึงรหัส API Key จากระบบความปลอดภัยหลังบ้านอัตโนมัติ (ไม่ต้องกรอกหน้าเว็บ)
+# 🔑 ดึงรหัส API Key จากระบบหลังบ้านอัตโนมัติ
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
-# โหลดประวัติเก่าจากหน่วยความจำดิสก์มาสแตนด์บายตั้งแต่เริ่มเปิดแอป
-if "gemini_chat_history" not in st.session_state:
-    st.session_state.gemini_chat_history = load_history_from_disk()
+# เตรียมระบบเก็บหน่วยความจำแชททั้งหมด
+if "all_chats" not in st.session_state:
+    st.session_state.all_chats = load_all_chats_from_disk()
 
-# 2. แถบเมนูด้านซ้าย (Sidebar)
+# สร้าง ID แชทปัจจุบันที่กำลังคุยอยู่
+if "current_session_id" not in st.session_state:
+    if st.session_state.all_chats:
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
+    else:
+        st.session_state.current_session_id = f"Chat_{int(time.time())}"
+
+if st.session_state.current_session_id not in st.session_state.all_chats:
+    st.session_state.all_chats[st.session_state.current_session_id] = []
+
+# 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
     if api_key:
-        st.success("✅ **สถานะคีย์:** เชื่อมต่ออัตโนมัติแล้ว")
+        st.success("✅ **สถานะคีย์:** เชื่อมต่ออัตโนมัติ")
     else:
-        st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์หลังบ้าน")
+        st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์")
+        
     st.markdown("---")
     
-    # ปุ่มล้างข้อมูลและทำลายหน่วยความจำถาวรเพื่อเริ่มคุยเรื่องใหม่
-    if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
-        st.session_state.gemini_chat_history = []
-        st.session_state.image_result = ""
-        st.session_state.audio_result = ""
-        if os.path.exists(HISTORY_FILE):
-            os.remove(HISTORY_FILE)
-        st.success("🧹 ล้างหน่วยความจำแชทเรียบร้อยแล้ว!")
-        time.sleep(1)
+    # 🔴 ปุ่มเริ่มห้องแชทใหม่ (+ New Chat)
+    if st.button("➕ เริ่มต้นแชทใหม่ (New Chat)", key="new_chat_btn"):
+        st.session_state.current_session_id = f"Chat_{int(time.time())}"
+        st.session_state.all_chats[st.session_state.current_session_id] = []
         st.rerun()
         
     st.markdown("---")
-    st.markdown("🤖 **โมเดลหลัก:** Gemini 3.6 Flash")
-    st.markdown("🛡️ **ระบบสำรอง:** Gemini 3.1 Pro (Fallback)")
+    st.markdown("📂 **ประวัติคำถามเก่าของคุณ:**")
+    
+    # 🔴 ลูปสร้างปุ่มเรียกดูประวัติคำถามเก่า
+    for session_id in list(st.session_state.all_chats.keys()):
+        chat_history = st.session_state.all_chats[session_id]
+        # ดึงประโยคแรกที่คุณพิมพ์ถามมาทำเป็นชื่อปุ่ม ถ้ายังไม่เคยคุยให้ใช้คำว่า "ห้องแชทว่างเปล่า"
+        if chat_history:
+            first_user_msg = "".join([part.text for part in chat_history[0].parts if part.text])
+            button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
+        else:
+            button_label = "📝 ห้องแชทว่างเปล่า"
+            
+        # ตรวจจับว่าถ้ากำลังเปิดห้องนี้อยู่ ให้ใส่สัญลักษณ์พิเศษกำบับไว้
+        if session_id == st.session_state.current_session_id:
+            button_label = f"💬 👉 {button_label}"
+        else:
+            button_label = f"💬 {button_label}"
+            
+        # เมื่อกดปุ่มประวัติเก่า จะสั่งสลับ ID ห้องแชททันที
+        if st.sidebar.button(button_label, key=f"session_{session_id}"):
+            st.session_state.current_session_id = session_id
+            st.rerun()
+            
+    st.markdown("---")
+    
+    # ปุ่มล้างข้อมูลทั้งหมดลบทุกห้องทิ้งแบบถอนรากถอนโคน
+    if st.button("🗑️ ล้างประวัติทั้งหมดถาวร", key="clear_all_btn"):
+        st.session_state.all_chats = {}
+        st.session_state.current_session_id = f"Chat_{int(time.time())}"
+        st.session_state.all_chats[st.session_state.current_session_id] = []
+        st.session_state.image_result = ""
+        st.session_state.audio_result = ""
+        if os.path.exists(ALL_CHATS_FILE):
+            os.remove(ALL_CHATS_FILE)
+        st.success("🧹 ล้างประวัติทุกห้องเกลี้ยงแล้ว!")
+        time.sleep(1)
+        st.rerun()
 
 # 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
 st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ ดึงข้อมูลจาก**ข้อความ รูปภาพ และเสียง** ได้ในที่เดียวแบบฟรีๆ")
 st.markdown("---")
 
-# ตรวจสอบว่าระบบหลังบ้านลงทะเบียนคีย์เรียบร้อยแล้วหรือไม่
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
@@ -184,25 +229,27 @@ else:
         "🎵 ถอดความสรุปจากเสียง"
     ])
 
+    # ดึงประวัติแชทของเซสชันปัจจุบันมาใช้งาน
+    current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
+
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - Streaming + ประวัติถาวร)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ดึงประวัติเก่าอัตโนมัติ)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
         
         chat_container = st.container()
         with chat_container:
-            st.markdown("#### 📜 บทสนทนาและคำตอบ:")
-            if st.session_state.gemini_chat_history:
-                for message in st.session_state.gemini_chat_history:
+            st.markdown("#### 📜 บทสนทนาและคำตอบของห้องนี้:")
+            if current_chat_history:
+                for message in current_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
                     text_content = "".join([part.text for part in message.parts if part.text])
                     st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
             else:
-                st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
+                st.write("ห้องแชทนี้ยังว่างเปล่า พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดเพื่อเริ่มบันทึกประวัติเรื่องใหม่ได้เลยครับ 👇")
 
-        # กล่องพิมพ์ล็อกขอบล่างถาวร พิมพ์แล้วกด Enter บนคีย์บอร์ดได้ทันที
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
@@ -211,41 +258,3 @@ else:
             live_scroll()
             
             with chat_container:
-                response_placeholder = st.empty()
-                
-            client = genai.Client(api_key=api_key)
-            full_response_text = ""
-            
-            # โครงสร้างเตรียมข้อความส่งระบบกูเกิล
-            messages_to_send = []
-            for msg in st.session_state.gemini_chat_history:
-                msg_parts = [types.Part.from_text(text=part.text) for part in msg.parts if part.text]
-                messages_to_send.append(types.Content(role=msg.role, parts=msg_parts))
-            messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
-            
-            try:
-                response_stream = client.models.generate_content_stream(
-                    model=primary_model,
-                    contents=messages_to_send
-                )
-                for chunk in response_stream:
-                    if chunk.text:
-                        full_response_text += chunk.text
-                        response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                        live_scroll()
-                        time.sleep(0.01)
-            except Exception as e:
-                if "503" in str(e) or "UNAVAILABLE" in str(e):
-                    try:
-                        response_stream = client.models.generate_content_stream(model=backup_model, contents=messages_to_send)
-                        for chunk in response_stream:
-                            if chunk.text:
-                                full_response_text += chunk.text
-                                response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                                live_scroll()
-                                time.sleep(0.01)
-                    except Exception as backup_err:
-                        st.error(f"ระบบหนาแน่นชั่วคราว โปรดพิมพ์ถามใหม่อีกครั้งครับ: {backup_err}")
-                else:
-                    st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
-            
