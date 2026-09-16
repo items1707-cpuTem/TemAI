@@ -239,6 +239,7 @@ else:
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบของห้องนี้:")
             if current_chat_history:
+                # 🔴 แก้ไขย่อหน้าภายในลูปให้อยู่ในบล็อกล็อกที่ถูกต้องเรียบร้อยแล้วครับ
                 for message in current_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
@@ -261,4 +262,3 @@ else:
             full_response_text = ""
             
             messages_to_send = []
-            for msg in current_chat_history:
