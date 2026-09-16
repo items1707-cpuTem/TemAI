@@ -15,7 +15,6 @@ st.set_page_config(
 # 🎨 อัปเดต CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
 st.markdown("""
     <style>
-    /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
     @import url('https://googleapis.com');
     
     html, body, [data-testid="stSidebar"], .stApp, p, label, li, span, h1, h2, h3, h4, h5, h6 {
@@ -27,7 +26,6 @@ st.markdown("""
         color: #202123;
     }
     
-    /* บังคับตัวหนังสือในกล่องพิมพ์แชท (st.chat_input) ด้านล่างสุดให้ใหญ่และชัดเจนขึ้น */
     .stChatInput textarea {
         font-size: 18px !important;  
         color: #000000 !important;
@@ -35,7 +33,6 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
     }
     
-    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามของภาพ/เสียงให้ใหญ่ขึ้นและเป็นสีดำ */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         font-size: 16px !important;
         color: #000000 !important;
@@ -58,7 +55,6 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
     }
     
-    /* จัดระเบียบกล่องแชทฝั่งผู้ใช้ให้อ่านง่าย */
     .user-bubble {
         background-color: #f0f4f9;
         padding: 14px 20px;
@@ -70,7 +66,6 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* จัดระเบียบกล่องแชทฝั่ง AI ให้อ่านง่ายเป็นสัดส่วน */
     .ai-bubble {
         background-color: #f7f7f8;
         padding: 16px 22px;
@@ -99,10 +94,13 @@ def live_scroll():
         </script>
     """, unsafe_allow_html=True)
 
+# 🔴 ดึงรหัส API Key จากระบบความปลอดภัยหลังบ้านอัตโนมัติ (ไม่ต้องพิมพ์ใส่หน้าเว็บอีกต่อไป)
+api_key = st.secrets.get("GEMINI_API_KEY", "")
+
 # 2. แถบเมนูด้านซ้าย (Sidebar)
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
-    api_key = st.text_input("🔑 ใส่ Gemini API Key ของคุณ:", type="password", placeholder="AIzaSy...")
+    st.markdown("✅ **สถานะคีย์:** เชื่อมต่อระบบหลังบ้านอัตโนมัติแล้ว")
     st.markdown("---")
     
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
@@ -120,9 +118,9 @@ st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุ�
 st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ ดึงข้อมูลจาก**ข้อความ รูปภาพ และเสียง** ได้ในที่เดียวแบบฟรีๆ")
 st.markdown("---")
 
-# ตรวจสอบการใส่ API Key ล่วงหน้าก่อนเริ่มระบบ
+# ตรวจสอบว่าระบบหลังบ้านลงทะเบียนคีย์เรียบร้อยแล้วหรือไม่
 if not api_key:
-    st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
+    st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนรันใช้งานครับ")
 else:
     primary_model = "gemini-3.6-flash"
     backup_model = "gemini-3.1-pro-preview" 
@@ -159,7 +157,6 @@ else:
             else:
                 st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
 
-        # กล่องพิมพ์ล็อกขอบล่างถาวร พิมพ์แล้วกด Enter บนคีย์บอร์ดได้ทันที
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
@@ -216,7 +213,7 @@ else:
                 st.rerun()
 
     # ===================================================
-    # แท็บที่ 2: ระบบรูปภาพ (Vision - แก้โครงสร้างย่อหน้าสมบูรณ์ 100%)
+    # แท็บที่ 2: ระบบรูปภาพ (Vision)
     # ===================================================
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
@@ -231,4 +228,11 @@ else:
             image_prompt = st.text_input("ระบุสิ่งที่คุณต้องการให้ AI ค้นหาจากภาพ:", value="ภาพนี้คือภาพเกี่ยวกับอะไร? ช่วยอธิบายสั้นๆ")
             
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
-                st.info("⏳ AI กำลังสแกนพิกเซลภาพ โปรดรอสักครู่...")
+                client = genai.Client(api_key=api_key)
+                try:
+                    response = client.models.generate_content(model=primary_model, contents=[img, image_prompt])
+                    st.session_state.image_result = response.text
+                    st.rerun()
+                except Exception as e:
+                    if "503" in str(e) or "UNAVAILABLE" in str(e):
+                        try:
