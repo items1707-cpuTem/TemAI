@@ -57,9 +57,8 @@ st.markdown("""
 
 # 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดโดยการวิ่งเข้าหา ID หมุดแบบสมูท
 def live_scroll():
-    # วิธีที่ 1: ใช้หมุดเว็บ HTML (เสถียรสุด ไม่โดนเบราว์เซอร์บล็อก)
+    # ใช้หมุดเว็บ HTML (เสถียรสุด ไม่โดนเบราว์เซอร์บล็อก)
     st.markdown('<div id="chat-end"></div>', unsafe_allow_html=True)
-    # วิธีที่ 2: เสริม JavaScript เข้าไปเผื่อเบราว์เซอร์รองรับเพื่อให้เลื่อนนุ่มนวลขึ้น
     st.markdown("""
         <script>
             var endPoint = window.parent.document.getElementById('chat-end');
@@ -97,7 +96,6 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
-    # 🔴 อัปเดตโมเดลเวอร์ชันใหม่ล่าสุดตรงนี้เรียบร้อยแล้วครับ
     primary_model = "gemini-3.6-flash"
     backup_model = "gemini-3.1-pro-preview" 
 
@@ -125,7 +123,6 @@ else:
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบ:")
             if st.session_state.gemini_chat_history:
-                # วนลูปแสดงผลประวัติแชทจากอดีตมาปัจจุบัน
                 for message in st.session_state.gemini_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
@@ -138,12 +135,10 @@ else:
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
-            # 1. แสดงคำถามใหม่ของผู้ใช้ขึ้นหน้าต่างแชททันที
             with chat_container:
                 st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
             live_scroll()
             
-            # 2. จองพื้นที่บนหน้าจอเตรียมพ่นคำตอบแบบสตรีมมิ่ง
             with chat_container:
                 response_placeholder = st.empty()
                 
@@ -151,31 +146,26 @@ else:
             full_response_text = ""
             
             try:
-                # แปลงประวัติเก่าส่งเข้าโหมดสตรีมมิ่ง
                 messages_to_send = []
                 for msg in st.session_state.gemini_chat_history:
                     msg_parts = [types.Part.from_text(text=part.text) for part in msg.parts if part.text]
                     messages_to_send.append(types.Content(role=msg.role, parts=msg_parts))
                 
-                # แนบคำถามล่าสุด
                 messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
                 
-                # สั่งรันคำตอบแบบทีละประโยค
                 response_stream = client.models.generate_content_stream(
                     model=primary_model,
                     contents=messages_to_send
                 )
                 
-                # ทุกๆ ครั้งที่มีตัวอักษรใหม่งอกออกมา ให้ขยับเลื่อนกล่องข้อความลงล่างสุดทันที
                 for chunk in response_stream:
                     if chunk.text:
                         full_response_text += chunk.text
                         response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                        live_scroll() # เรียกใช้ฟังก์ชันปักหมุดเลื่อนตามคำต่อคำ
+                        live_scroll()
                         time.sleep(0.01)
                         
             except Exception as e:
-                # ระบบสลับไปใช้รุ่น 3.1 Pro อัตโนมัติเมื่อเจอบั๊กเซิร์ฟเวอร์แน่น (503)
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     try:
                         response_stream = client.models.generate_content_stream(model=backup_model, contents=messages_to_send)
@@ -190,7 +180,6 @@ else:
                 else:
                     st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
             
-            # 3. บันทึกคำตอบลงฐานข้อมูลประวัติแชทหลัก
             if full_response_text:
                 new_user_msg = types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)])
                 new_ai_msg = types.Content(role="model", parts=[types.Part.from_text(text=full_response_text)])
@@ -199,7 +188,7 @@ else:
                 st.rerun()
 
     # ===================================================
-    # แท็บที่ 2: ระบบรูปภาพ (Vision)
+    # แท็บที่ 2: ระบบรูปภาพ (Vision - แก้ไขโครงสร้างเรียบร้อย)
     # ===================================================
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
@@ -220,3 +209,16 @@ else:
                         response = client.models.generate_content(model=primary_model, contents=[img, image_prompt])
                         st.session_state.image_result = response.text
                         st.rerun()
+                    except Exception as e:
+                        if "503" in str(e) or "UNAVAILABLE" in str(e):
+                            try:
+                                response = client.models.generate_content(model=backup_model, contents=[img, image_prompt])
+                                st.session_state.image_result = response.text
+                                st.rerun()
+                            except Exception as backup_err:
+                                st.error(f"เซิร์ฟเวอร์หนาแน่นชั่วคราว: {backup_err}")
+                        else:
+                            st.error(f"เกิดข้อผิดพลาด: {e}")
+                live_scroll()
+
+    # ===================================================
