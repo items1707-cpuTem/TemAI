@@ -55,15 +55,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🛠️ ฟังก์ชันพิเศษ: บังคับให้หน้าต่างเบราว์เซอร์เด้งลงล่างสุดหน้าจอตลอดเวลาขณะ AI พิมพ์คำตอบ
+# 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดโดยการวิ่งเข้าหา ID หมุดแบบสมูท
 def live_scroll():
+    # วิธีที่ 1: ใช้หมุดเว็บ HTML (เสถียรสุด ไม่โดนเบราว์เซอร์บล็อก)
+    st.markdown('<div id="chat-end"></div>', unsafe_allow_html=True)
+    # วิธีที่ 2: เสริม JavaScript เข้าไปเผื่อเบราว์เซอร์รองรับเพื่อให้เลื่อนนุ่มนวลขึ้น
     st.markdown("""
         <script>
-            var pageContainer = window.parent.document.querySelector('.main');
-            if (pageContainer) {
-                pageContainer.scrollTop = pageContainer.scrollHeight;
+            var endPoint = window.parent.document.getElementById('chat-end');
+            if (endPoint) {
+                endPoint.scrollIntoView({ behavior: 'smooth', block: 'end' });
             } else {
-                window.scrollTo(0, document.body.scrollHeight);
+                var pageContainer = window.parent.document.querySelector('.main');
+                if (pageContainer) { pageContainer.scrollTop = pageContainer.scrollHeight; }
             }
         </script>
     """, unsafe_allow_html=True)
@@ -111,7 +115,7 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - Streaming + Live Scroll)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - Streaming + ปักหมุดเลื่อนจอ)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -120,7 +124,7 @@ else:
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบ:")
             if st.session_state.gemini_chat_history:
-                # วนลูปอ่านประวัติเพื่อแสดงผลจากบนลงล่างตามเวลาจริง
+                # วนลูปแสดงผลประวัติแชทจากอดีตมาปัจจุบัน
                 for message in st.session_state.gemini_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
@@ -138,7 +142,7 @@ else:
                 st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
             live_scroll()
             
-            # 2. จองพื้นที่บนหน้าจอเตรียมพ่นคำตอบแบบขยับเลื่อนตามข้อความสด
+            # 2. จองพื้นที่บนหน้าจอเตรียมพ่นคำตอบแบบสตรีมมิ่ง
             with chat_container:
                 response_placeholder = st.empty()
                 
@@ -146,31 +150,30 @@ else:
             full_response_text = ""
             
             try:
-                # แปลงประวัติเก่าให้เป็นคลาสออบเจกต์ที่สตรีมมิ่งยอมรับเพื่อผูกแชทต่อเนื่อง
+                # แปลงประวัติเก่าส่งเข้าโหมดสตรีมมิ่ง
                 messages_to_send = []
                 for msg in st.session_state.gemini_chat_history:
                     msg_parts = [types.Part.from_text(text=part.text) for part in msg.parts if part.text]
                     messages_to_send.append(types.Content(role=msg.role, parts=msg_parts))
                 
-                # แนบคำถามล่าสุดต่อท้ายลิสต์
+                # แนบคำถามล่าสุด
                 messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
                 
-                # สั่งยิงข้อมูลแบบ Streaming
+                # สั่งรันคำตอบแบบทีละประโยค
                 response_stream = client.models.generate_content_stream(
                     model=primary_model,
                     contents=messages_to_send
                 )
                 
-                # ลูปดึงตัวหนังสือที่ทยอยส่งออกมาทีละชิ้น และสั่งรีเฟรชดันขอบหน้าจอลงล่างทันที
+                # ทุกๆ ครั้งที่มีตัวอักษรใหม่งอกออกมา ให้ขยับเลื่อนกล่องข้อความลงล่างสุดทันที
                 for chunk in response_stream:
                     if chunk.text:
                         full_response_text += chunk.text
                         response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                        live_scroll() # ดันแถบพิมพ์และหน้าจอขยับลงตามตัวหนังสือสดๆ
+                        live_scroll() # 🔴 เรียกใช้ฟังก์ชันปักหมุดเลื่อนตามคำต่อคำ บรรทัดต่อบรรทัด
                         time.sleep(0.01)
                         
             except Exception as e:
-                # ระบบสำรองกรณีกูเกิลคลาวด์แน่น (Error 503)
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     try:
                         response_stream = client.models.generate_content_stream(model=backup_model, contents=messages_to_send)
@@ -185,7 +188,7 @@ else:
                 else:
                     st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
             
-            # 3. บันทึกคำถามและคำตอบล่าสุดกลับเข้าสู่คลังฐานข้อมูลประวัติแท้เพื่อใช้คุยต่อเนื่องในรอบหน้า
+            # 3. บันทึกคำตอบลงฐานข้อมูลประวัติแชทหลัก
             if full_response_text:
                 new_user_msg = types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)])
                 new_ai_msg = types.Content(role="model", parts=[types.Part.from_text(text=full_response_text)])
@@ -219,6 +222,3 @@ else:
                         st.error(f"เกิดข้อผิดพลาด: {e}")
                 live_scroll()
 
-    # ===================================================
-    # แท็บที่ 3: ระบบไฟล์เสียง (Audio - แก้ไข Indentation เรียบร้อย)
-    # ===================================================
