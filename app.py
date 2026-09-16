@@ -136,7 +136,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID แชทปัจจุบันที่กำลังคุยอยู่
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -166,7 +166,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = chat_history["text"]
+            first_user_msg = chat_history[0]["text"]
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -220,7 +220,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบลูปสตรีมตรงเป๊ะ)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - เวอร์ชันตัดลูปพังทิ้งถาวร)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -243,12 +243,6 @@ else:
                 st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
             live_scroll()
             
-            with chat_container:
-                response_placeholder = st.empty()
-                
-            client = genai.Client(api_key=api_key)
-            full_response_text = ""
-            
             # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
             messages_to_send = []
             for msg in current_chat_history:
@@ -260,6 +254,10 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🛠️ จัดระเบียบลูปสตรีมมิ่งและย่อหน้าชั้นในให้สมดุลเท่ากัน 100% ไร้พังชัวร์
-            response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
-            for chunk in response_stream:
+            # ฟังก์ชันตัวช่วยดักจับสตรีมมิ่งเพื่อป้อนให้ st.write_stream อ่านทีละประโยคแบบไร้ลูปพัง
+            def response_generator():
+                client_instance = genai.Client(api_key=api_key)
+                response_stream = client_instance.models.generate_content_stream(model=active_model, contents=messages_to_send)
+                for chunk in response_stream:
+                    if chunk.text:
+                        yield chunk.text
