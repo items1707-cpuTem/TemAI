@@ -106,7 +106,6 @@ HISTORY_FILE = "persistent_chat_history.pkl"
 
 def save_history_to_disk(history_data):
     try:
-        # แปลงข้อมูลประวัติแชทดิบเก็บลงไฟล์ pickle ปลอดภัยภาษาไทยไม่เพี้ยน
         simplified_history = []
         for msg in history_data:
             text_content = "".join([part.text for part in msg.parts if part.text])
@@ -121,7 +120,6 @@ def load_history_from_disk():
         try:
             with open(HISTORY_FILE, "rb") as f:
                 simplified_history = pickle.load(f)
-            # แปลงกลับมาเป็นคลาสออบเจกต์ที่กูเกิลใช้งานได้ตามเดิม
             restored_history = []
             for item in simplified_history:
                 restored_history.append(
@@ -148,13 +146,13 @@ with st.sidebar:
         st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์หลังบ้าน")
     st.markdown("---")
     
-    # 🔴 ปุ่มล้างข้อมูลและทำลายหน่วยความจำถาวรเพื่อเริ่มคุยเรื่องใหม่
+    # ปุ่มล้างข้อมูลและทำลายหน่วยความจำถาวรเพื่อเริ่มคุยเรื่องใหม่
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
         st.session_state.gemini_chat_history = []
         st.session_state.image_result = ""
         st.session_state.audio_result = ""
         if os.path.exists(HISTORY_FILE):
-            os.remove(HISTORY_FILE) # ลบไฟล์บันทึกทิ้งจากไดรฟ์เซิร์ฟเวอร์
+            os.remove(HISTORY_FILE)
         st.success("🧹 ล้างหน่วยความจำแชทเรียบร้อยแล้ว!")
         time.sleep(1)
         st.rerun()
@@ -218,26 +216,24 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
+            # โครงสร้างเตรียมข้อความส่งระบบกูเกิล
+            messages_to_send = []
+            for msg in st.session_state.gemini_chat_history:
+                msg_parts = [types.Part.from_text(text=part.text) for part in msg.parts if part.text]
+                messages_to_send.append(types.Content(role=msg.role, parts=msg_parts))
+            messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
+            
             try:
-                messages_to_send = []
-                for msg in st.session_state.gemini_chat_history:
-                    msg_parts = [types.Part.from_text(text=part.text) for part in msg.parts if part.text]
-                    messages_to_send.append(types.Content(role=msg.role, parts=msg_parts))
-                
-                messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
-                
                 response_stream = client.models.generate_content_stream(
                     model=primary_model,
                     contents=messages_to_send
                 )
-                
                 for chunk in response_stream:
                     if chunk.text:
                         full_response_text += chunk.text
                         response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
                         live_scroll()
                         time.sleep(0.01)
-                        
             except Exception as e:
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     try:
@@ -249,3 +245,7 @@ else:
                                 live_scroll()
                                 time.sleep(0.01)
                     except Exception as backup_err:
+                        st.error(f"ระบบหนาแน่นชั่วคราว โปรดพิมพ์ถามใหม่อีกครั้งครับ: {backup_err}")
+                else:
+                    st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
+            
