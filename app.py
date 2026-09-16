@@ -216,7 +216,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระเบียบล็อก try-except สมบูรณ์)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบดักจับ Error ตรงล็อกเป๊ะ 100%)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -245,7 +245,6 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
-            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
             messages_to_send = []
             for msg in current_chat_history:
                 messages_to_send.append(
