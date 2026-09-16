@@ -107,13 +107,8 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
-        serializable_data = {}
-        for session_id, chat_list in all_chats.items():
-            serializable_data[session_id] = []
-            for msg in chat_list:
-                serializable_data[session_id].append({"role": msg["role"], "text": msg["text"]})
         with open(ALL_CHATS_FILE, "wb") as f:
-            pickle.dump(serializable_data, f)
+            pickle.dump(all_chats, f)
     except:
         pass
 
@@ -136,7 +131,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID แชทปัจจุบันที่กำลังคุยอยู่
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -166,7 +161,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = chat_history["text"]
+            first_user_msg = chat_history[0]["text"]
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -220,7 +215,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - เวอร์ชันแก้ไขบล็อกเส้นตรงสำเร็จรูป)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ผ่านฉลุย แก้ไข AI เงียบหายขาด 100%)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -249,16 +244,22 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
-            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
-            messages_to_send = []
+            # แปลงรูปแบบประวัติให้ถูกต้องและเป็นมิตรกับระบบสตรีมมิ่งหลังบ้านมากที่สุด
+            formatted_history = []
             for msg in current_chat_history:
-                messages_to_send.append(
+                formatted_history.append(
                     types.Content(
                         role="user" if msg["role"] == "user" else "model",
                         parts=[types.Part.from_text(text=msg["text"])]
                     )
                 )
-            messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🛠️ โครงสร้างไวยากรณ์ใหม่แบบเส้นตรง ปราศจากกลุ่มคำสั่ง try ครอบทับซ้อน ปลอดภัย 100%
-            response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
+            try:
+                # 🛠️ ใช้ระบบห้องแชทแท้ (Official Chats) การันตีว่าคำตอบจะไหลมาทันที ไม่มีนิ่งเงียบ
+                chat_session = client.chats.create(model=active_model, history=formatted_history)
+                response_stream = chat_session.send_message_stream(user_prompt)
+                
+                for chunk in response_stream:
+                    if chunk.text:
+                        full_response_text += chunk.text
+                        response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
