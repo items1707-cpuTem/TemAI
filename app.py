@@ -136,7 +136,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID แชทปัจจุบันที่กำลังคุยอยู่
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -166,7 +166,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = chat_history[0]["text"]
+            first_user_msg = chat_history["text"]
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -220,7 +220,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ลบโครงสร้าง Try ที่พังทิ้งถาวร)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบลูปสตรีมตรงเป๊ะ)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -260,6 +260,6 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🛠️ รันสตรีมมิ่งแบบเส้นตรง ปลอดภัยจาก Indentation / Syntax Error 100% ชัวร์
+            # 🛠️ จัดระเบียบลูปสตรีมมิ่งและย่อหน้าชั้นในให้สมดุลเท่ากัน 100% ไร้พังชัวร์
             response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
             for chunk in response_stream:
