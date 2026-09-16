@@ -86,7 +86,7 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("🤖 **โมเดลหลัก:** Gemini 3.6 Flash")
-    st.markdown("🛡️ **ระบบสำรอง:** Fallback Mode")
+    st.markdown("🛡️ **ระบบสำรอง:** Gemini 3.1 Pro (Fallback)")
 
 # 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
@@ -97,8 +97,9 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
+    # 🔴 อัปเดตโมเดลเวอร์ชันใหม่ล่าสุดตรงนี้เรียบร้อยแล้วครับ
     primary_model = "gemini-3.6-flash"
-    backup_model = "gemini-2.5-pro"
+    backup_model = "gemini-3.1-pro-preview" 
 
     # สร้างคลังเก็บประวัติแชทแท้ของ Google SDK
     if "gemini_chat_history" not in st.session_state:
@@ -170,10 +171,11 @@ else:
                     if chunk.text:
                         full_response_text += chunk.text
                         response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                        live_scroll() # 🔴 เรียกใช้ฟังก์ชันปักหมุดเลื่อนตามคำต่อคำ บรรทัดต่อบรรทัด
+                        live_scroll() # เรียกใช้ฟังก์ชันปักหมุดเลื่อนตามคำต่อคำ
                         time.sleep(0.01)
                         
             except Exception as e:
+                # ระบบสลับไปใช้รุ่น 3.1 Pro อัตโนมัติเมื่อเจอบั๊กเซิร์ฟเวอร์แน่น (503)
                 if "503" in str(e) or "UNAVAILABLE" in str(e):
                     try:
                         response_stream = client.models.generate_content_stream(model=backup_model, contents=messages_to_send)
@@ -218,7 +220,3 @@ else:
                         response = client.models.generate_content(model=primary_model, contents=[img, image_prompt])
                         st.session_state.image_result = response.text
                         st.rerun()
-                    except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาด: {e}")
-                live_scroll()
-
