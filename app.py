@@ -99,25 +99,29 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - รองรับการกด Enter)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - คำตอบอยู่บน คำถามอยู่ล่าง)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
-        st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน
-        if st.session_state.gemini_chat_history:
-            for message in reversed(st.session_state.gemini_chat_history):
-                role = "👤 คุณ" if message.role == "user" else "🤖 AI"
-                bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
-                
-                # ดึงข้อความจากชิ้นส่วนข้อความ (Parts) ออกมาแสดงผล
-                text_content = "".join([part.text for part in message.parts if part.text])
-                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
-        else:
-            st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
-            
-        # 🔴 จุดเด่นใหม่: ใช้ st.chat_input บล็อกพิมพ์สีขาวติดขอบล่างอัตโนมัติ รองรับการกด Enter คีย์บอร์ดทันที
+        # 🔴 บล็อกแสดงผล (อยู่ด้านบนเหนือกล่องคำถามเสมอ)
+        chat_container = st.container()
+        
+        with chat_container:
+            st.markdown("#### 📜 บทสนทนาและคำตอบ:")
+            if st.session_state.gemini_chat_history:
+                # วนลูปแสดงผลจากอดีตมาปัจจุบัน (เรียงตามลำดับเวลาปกติ เพื่อให้อ่านง่ายจากบนลงล่าง)
+                for message in st.session_state.gemini_chat_history:
+                    role = "👤 คุณ" if message.role == "user" else "🤖 AI"
+                    bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
+                    
+                    # ดึงข้อความจากชิ้นส่วนข้อความ (Parts) ออกมาแสดงผล
+                    text_content = "".join([part.text for part in message.parts if part.text])
+                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
+            else:
+                st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
+
+        # 🔴 บล็อกรับค่าข้อความ (ใช้ st.chat_input ยึดตำแหน่งไว้ที่ขอบล่างสุดของจอถาวร)
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
