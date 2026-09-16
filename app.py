@@ -107,8 +107,13 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
+        serializable_data = {}
+        for session_id, chat_list in all_chats.items():
+            serializable_data[session_id] = []
+            for msg in chat_list:
+                serializable_data[session_id].append({"role": msg["role"], "text": msg["text"]})
         with open(ALL_CHATS_FILE, "wb") as f:
-            pickle.dump(all_chats, f)
+            pickle.dump(serializable_data, f)
     except:
         pass
 
@@ -215,7 +220,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ล้างโครงสร้างพังเรียบร้อย)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ตรวจสอบย่อหน้าบล็อก Try-Except สำเร็จ)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -244,7 +249,7 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
-            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้องแม่นยำ
+            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้อง
             messages_to_send = []
             for msg in current_chat_history:
                 messages_to_send.append(
@@ -255,9 +260,6 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🛠️ โครงสร้างไวยากรณ์ใหม่แบบเส้นตรง สะอาด และปลอดภัยจากปัญหา Syntax/Indentation 100%
+            # 🛠️ จัดระเบียบล็อก try-except และตัวแปร chunk ภายในลูปให้อยู่ในระนาบที่ถูกต้องสมบูรณ์
             try:
                 response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
-                for chunk in response_stream:
-                    if chunk.text:
-                        full_response_text += chunk.text
