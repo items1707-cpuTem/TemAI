@@ -53,6 +53,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# 🛠️ ฟังก์ชันพิเศษ: สั่งให้เบราว์เซอร์เลื่อนหน้าจอลงล่างสุดอัตโนมัติด้วย JavaScript
+def scroll_to_bottom():
+    st.markdown("""
+        <script>
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        </script>
+    """, unsafe_allow_html=True)
+
 # 2. แถบเมนูด้านซ้าย (Sidebar)
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
@@ -67,7 +78,7 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("🤖 **โมเดลหลัก:** Gemini 3.6 Flash")
-    st.markdown("🛡️ **ระบบสำรอง:** เปิดใช้งานอัตโนมัติ (Fallback Mode)")
+    st.markdown("🛡️ **ระบบสำรอง:** Fallback Mode")
 
 # 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
@@ -78,9 +89,8 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
-    # 🔴 ตั้งค่าระบบจัดการชื่อโมเดลสำรองกรณีเซิร์ฟเวอร์หลักแน่น (Error 503)
     primary_model = "gemini-3.6-flash"
-    backup_model = "gemini-2.5-pro" # ใช้รุ่น Pro สำรองข้อมูลความแม่นยำสูง
+    backup_model = "gemini-2.5-pro"
 
     if "gemini_chat_history" not in st.session_state:
         st.session_state.gemini_chat_history = []
@@ -105,6 +115,7 @@ else:
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบ:")
             if st.session_state.gemini_chat_history:
+                # 🔴 ปรับกลับมาเรียงจากบนลงล่างตามเวลาจริงเพื่อให้ปุ่มเลื่อนอัตโนมัติทำงานได้อย่างเป็นธรรมชาติ
                 for message in st.session_state.gemini_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
@@ -113,19 +124,18 @@ else:
             else:
                 st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
 
+        # กล่องคำถามล็อกอยู่ที่ขอบล่างสุดของจอถาวร พิมพ์แล้ว Enter ได้เลย
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
             with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
                 client = genai.Client(api_key=api_key)
                 try:
-                    # รอบที่ 1: พยายามลองยิงผ่านโมเดลหลักตัวอัปเดตล่าสุด
                     chat = client.chats.create(model=primary_model, history=st.session_state.gemini_chat_history)
                     response = chat.send_message(user_prompt)
                     st.session_state.gemini_chat_history = chat.get_history()
                     st.rerun()
                 except Exception as e:
-                    # 🔴 ถ้าเซิร์ฟเวอร์หลักพ่น Error 503 กลับมา ระบบจะถอยมาใช้แผนสำรองทันที
                     if "503" in str(e) or "UNAVAILABLE" in str(e):
                         try:
                             chat = client.chats.create(model=backup_model, history=st.session_state.gemini_chat_history)
@@ -133,9 +143,12 @@ else:
                             st.session_state.gemini_chat_history = chat.get_history()
                             st.rerun()
                         except Exception as backup_err:
-                            st.error(f"ระบบหลักและระบบสำรองหนาแน่นพร้อมกัน โปรดเว้นจังหวะพิมพ์อีกครั้งครับ: {backup_err}")
+                            st.error(f"ระบบหนาแน่น โปรดลองอีกครั้งครับ: {backup_err}")
                     else:
                         st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
+            
+            # เรียกใช้ฟังก์ชันเลื่อนหน้าจอลงล่างสุดหลังจากอัปเดตคำตอบเสร็จแล้ว
+            scroll_to_bottom()
 
     # ===================================================
     # แท็บที่ 2: ระบบรูปภาพ (Vision)
@@ -169,6 +182,7 @@ else:
                                 st.error(f"ระบบไม่พร้อมใช้งานชั่วคราว: {backup_err}")
                         else:
                             st.error(f"เกิดข้อผิดพลาด: {e}")
+                scroll_to_bottom()
 
     # ===================================================
     # แท็บที่ 3: ระบบไฟล์เสียง (Audio)
@@ -203,3 +217,4 @@ else:
                                 st.error(f"ระบบไม่พร้อมใช้งานชั่วคราว: {backup_err}")
                         else:
                             st.error(f"เกิดข้อผิดพลาด: {e}")
+                scroll_to_bottom()
