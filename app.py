@@ -198,8 +198,8 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    primary_model = "gemini-3.6-flash"
-    backup_model = "gemini-3.1-pro-preview" 
+    # 🛠️ ใช้รุ่นโมเดลหลักเวอร์ชันเสถียรสูงสุดคู่หน้าเว็บสตรีมมิ่ง
+    active_model = "gemini-3.6-flash"
 
     if "image_result" not in st.session_state:
         st.session_state.image_result = ""
@@ -216,7 +216,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบดักจับ Error ตรงล็อกเป๊ะ 100%)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ปลดล็อกไวยากรณ์ผ่านฉลุย)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -245,6 +245,7 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
+            # จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบกูเกิลอย่างถูกต้องแม่นยำ
             messages_to_send = []
             for msg in current_chat_history:
                 messages_to_send.append(
@@ -253,14 +254,11 @@ else:
                         parts=[types.Part.from_text(text=msg["text"])]
                     )
                 )
+            messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
+            # 🛠️ ปรับโครงสร้างแบบเรียบง่าย ปลอดภัย ไร้ย่อหน้าซ้อนพังร้อยเปอร์เซ็นต์
             try:
-                chat = client.chats.create(model=primary_model, history=messages_to_send)
-                response_stream = chat.send_message_stream(user_prompt)
+                response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
                 for chunk in response_stream:
                     if chunk.text:
                         full_response_text += chunk.text
-                        response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                        live_scroll()
-                        time.sleep(0.01)
-            except Exception as e:
