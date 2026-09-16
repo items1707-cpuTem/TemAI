@@ -18,7 +18,6 @@ st.markdown("""
         background-color: #ffffff;
         color: #202123;
     }
-    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามของภาพ/เสียงให้เป็นสีดำ */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         color: #000000 !important;
         background-color: #f0f4f9 !important;
@@ -35,7 +34,6 @@ st.markdown("""
         padding: 10px 24px !important;
         font-weight: bold;
     }
-    /* กล่องข้อความฝั่งผู้ใช้ */
     .user-bubble {
         background-color: #f0f4f9;
         padding: 12px 18px;
@@ -44,7 +42,6 @@ st.markdown("""
         border-right: 5px solid #1a7f64;
         color: #000000;
     }
-    /* กล่องคำตอบฝั่ง AI */
     .ai-bubble {
         background-color: #f7f7f8;
         padding: 15px 20px;
@@ -62,7 +59,6 @@ with st.sidebar:
     api_key = st.text_input("🔑 ใส่ Gemini API Key ของคุณ:", type="password", placeholder="AIzaSy...")
     st.markdown("---")
     
-    # ปุ่มรีเซ็ตล้างความจำเพื่อเริ่มคุยเรื่องใหม่
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
         st.session_state.gemini_chat_history = []
         st.session_state.image_result = ""
@@ -70,7 +66,8 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.markdown("🤖 **ระบบขับเคลื่อนโดย:** Gemini 3.6 Flash")
+    st.markdown("🤖 **โมเดลหลัก:** Gemini 3.6 Flash")
+    st.markdown("🛡️ **ระบบสำรอง:** เปิดใช้งานอัตโนมัติ (Fallback Mode)")
 
 # 3. ส่วนหัวเว็บไซต์หลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
@@ -81,9 +78,10 @@ st.markdown("---")
 if not api_key:
     st.warning("⚠️ กรุณากรอกรหัส Gemini API Key ที่แถบเมนูด้านซ้ายมือ เพื่อเปิดสวิตช์ระบบใช้งานครับ")
 else:
-    model_name = "gemini-3.6-flash"
+    # 🔴 ตั้งค่าระบบจัดการชื่อโมเดลสำรองกรณีเซิร์ฟเวอร์หลักแน่น (Error 503)
+    primary_model = "gemini-3.6-flash"
+    backup_model = "gemini-2.5-pro" # ใช้รุ่น Pro สำรองข้อมูลความแม่นยำสูง
 
-    # สร้างคลังเก็บข้อมูลประวัติการคุยแบบสากลของระบบ
     if "gemini_chat_history" not in st.session_state:
         st.session_state.gemini_chat_history = []
     if "image_result" not in st.session_state:
@@ -91,7 +89,6 @@ else:
     if "audio_result" not in st.session_state:
         st.session_state.audio_result = ""
 
-    # 4. สร้างแถบแท็บฟังก์ชัน
     tab_text, tab_image, tab_audio = st.tabs([
         "💬 ถามตอบด้วยข้อความ (ระบบแชทต่อเนื่อง)", 
         "🖼️ วิเคราะห์และอ่านรูปภาพ", 
@@ -99,61 +96,54 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - คำตอบอยู่บน คำถามอยู่ล่าง)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
         
-        # 🔴 บล็อกแสดงผล (อยู่ด้านบนเหนือกล่องคำถามเสมอ)
         chat_container = st.container()
-        
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบ:")
             if st.session_state.gemini_chat_history:
-                # วนลูปแสดงผลจากอดีตมาปัจจุบัน (เรียงตามลำดับเวลาปกติ เพื่อให้อ่านง่ายจากบนลงล่าง)
                 for message in st.session_state.gemini_chat_history:
                     role = "👤 คุณ" if message.role == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
-                    
-                    # ดึงข้อความจากชิ้นส่วนข้อความ (Parts) ออกมาแสดงผล
                     text_content = "".join([part.text for part in message.parts if part.text])
                     st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
             else:
                 st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
 
-        # 🔴 บล็อกรับค่าข้อความ (ใช้ st.chat_input ยึดตำแหน่งไว้ที่ขอบล่างสุดของจอถาวร)
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
             with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
+                client = genai.Client(api_key=api_key)
                 try:
-                    # สร้างการเชื่อมต่อใหม่สดเพื่อป้องกันช่องสัญญาณปิด
-                    client = genai.Client(api_key=api_key)
-                    chat = client.chats.create(
-                        model=model_name,
-                        history=st.session_state.gemini_chat_history
-                    )
-                    
-                    # ส่งข้อความคำถามใหม่เข้าไปในระบบ
+                    # รอบที่ 1: พยายามลองยิงผ่านโมเดลหลักตัวอัปเดตล่าสุด
+                    chat = client.chats.create(model=primary_model, history=st.session_state.gemini_chat_history)
                     response = chat.send_message(user_prompt)
-                    
-                    # เซฟประวัติแชทล่าสุดเก็บไว้แล้วรีเฟรชหน้าจอทันที
                     st.session_state.gemini_chat_history = chat.get_history()
-                    st.rerun() 
+                    st.rerun()
                 except Exception as e:
-                    st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
+                    # 🔴 ถ้าเซิร์ฟเวอร์หลักพ่น Error 503 กลับมา ระบบจะถอยมาใช้แผนสำรองทันที
+                    if "503" in str(e) or "UNAVAILABLE" in str(e):
+                        try:
+                            chat = client.chats.create(model=backup_model, history=st.session_state.gemini_chat_history)
+                            response = chat.send_message(user_prompt)
+                            st.session_state.gemini_chat_history = chat.get_history()
+                            st.rerun()
+                        except Exception as backup_err:
+                            st.error(f"ระบบหลักและระบบสำรองหนาแน่นพร้อมกัน โปรดเว้นจังหวะพิมพ์อีกครั้งครับ: {backup_err}")
+                    else:
+                        st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
 
     # ===================================================
     # แท็บที่ 2: ระบบรูปภาพ (Vision)
     # ===================================================
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
-        
         if st.session_state.image_result:
-            st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
-            st.markdown("#### 🤖 ผลการวิเคราะห์รูปภาพล่าสุด:")
-            st.write(st.session_state.image_result)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='ai-bubble'>#### 🤖 ผลการวิเคราะห์รูปภาพล่าสุด:<br>{}</div>".format(st.session_state.image_result), unsafe_allow_html=True)
             st.markdown("---")
             
         uploaded_image = st.file_uploader("เลือกอัปโหลดรูปภาพของคุณ:", type=["jpg", "jpeg", "png"])
@@ -164,25 +154,29 @@ else:
             
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
                 with st.spinner("⏳ AI กำลังสแกนพิกเซลภาพ..."):
+                    client = genai.Client(api_key=api_key)
                     try:
-                        client = genai.Client(api_key=api_key)
-                        response = client.models.generate_content(model=model_name, contents=[img, image_prompt])
+                        response = client.models.generate_content(model=primary_model, contents=[img, image_prompt])
                         st.session_state.image_result = response.text
                         st.rerun()
                     except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาด: {e}")
+                        if "503" in str(e) or "UNAVAILABLE" in str(e):
+                            try:
+                                response = client.models.generate_content(model=backup_model, contents=[img, image_prompt])
+                                st.session_state.image_result = response.text
+                                st.rerun()
+                            except Exception as backup_err:
+                                st.error(f"ระบบไม่พร้อมใช้งานชั่วคราว: {backup_err}")
+                        else:
+                            st.error(f"เกิดข้อผิดพลาด: {e}")
 
     # ===================================================
     # แท็บที่ 3: ระบบไฟล์เสียง (Audio)
     # ===================================================
     with tab_audio:
         st.markdown("### 🎵 สรุปและแกะเสียงข้อความ")
-        
         if st.session_state.audio_result:
-            st.markdown("<div class='ai-bubble'>", unsafe_allow_html=True)
-            st.markdown("#### 🤖 สรุปใจความสำคัญจากไฟล์เสียงล่าสุด:")
-            st.write(st.session_state.audio_result)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='ai-bubble'>#### 🤖 สรุปใจความสำคัญจากไฟล์เสียงล่าสุด:<br>{}</div>".format(st.session_state.audio_result), unsafe_allow_html=True)
             st.markdown("---")
             
         uploaded_audio = st.file_uploader("เลือกอัปโหลดไฟล์เสียงของคุณ:", type=["mp3", "wav"])
@@ -192,11 +186,20 @@ else:
             
             if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
                 with st.spinner("⏳ AI กำลังแกะรหัสสัญญาณเสียง..."):
+                    client = genai.Client(api_key=api_key)
                     try:
-                        client = genai.Client(api_key=api_key)
                         audio_file = client.files.upload(file=uploaded_audio)
-                        response = client.models.generate_content(model=model_name, contents=[audio_file, audio_prompt])
+                        response = client.models.generate_content(model=primary_model, contents=[audio_file, audio_prompt])
                         st.session_state.audio_result = response.text
                         st.rerun()
                     except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาด: {e}")
+                        if "503" in str(e) or "UNAVAILABLE" in str(e):
+                            try:
+                                audio_file = client.files.upload(file=uploaded_audio)
+                                response = client.models.generate_content(model=backup_model, contents=[audio_file, audio_prompt])
+                                st.session_state.audio_result = response.text
+                                st.rerun()
+                            except Exception as backup_err:
+                                st.error(f"ระบบไม่พร้อมใช้งานชั่วคราว: {backup_err}")
+                        else:
+                            st.error(f"เกิดข้อผิดพลาด: {e}")
