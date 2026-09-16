@@ -18,6 +18,7 @@ st.markdown("""
         background-color: #ffffff;
         color: #202123;
     }
+    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามของภาพ/เสียงให้เป็นสีดำ */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         color: #000000 !important;
         background-color: #f0f4f9 !important;
@@ -98,42 +99,13 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ล่างพิมพ์ บนตอบ)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - รองรับการกด Enter)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
-        
-        st.markdown("#### 👇 พิมพ์คำถามใหม่ของคุณที่นี่:")
-        user_prompt = st.text_area("ป้อนคำถามของคุณ (เช่น แนะนำวิธีทำอาหารง่ายๆ, อธิบายโปรแกรมนี้หน่อย):", key="chat_input", placeholder="พิมพ์ข้อความคำถาม...")
-        
-        if st.button("🚀 ส่งคำถามไปยัง AI", key="btn_text"):
-            if user_prompt:
-                with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
-                    try:
-                        # 🛠️ ประกาศสร้าง Client และเปิดแชทใหม่สดๆ ทุกครั้งที่กดปุ่ม เพื่อป้องกัน Client Closed
-                        client = genai.Client(api_key=api_key)
-                        
-                        # สร้างออบเจกต์แชทโดยการโยนประวัติเก่าทั้งหมดส่งผ่านพารามิเตอร์ history เข้าไป
-                        chat = client.chats.create(
-                            model=model_name,
-                            history=st.session_state.gemini_chat_history
-                        )
-                        
-                        # ส่งข้อความคำถามใหม่เข้าไปในระบบ
-                        response = chat.send_message(user_prompt)
-                        
-                        # ดึงประวัติที่ถูกอัปเดตเรียบร้อยแล้วกลับมาเซฟเก็บไว้ในหน่วยความจำ
-                        st.session_state.gemini_chat_history = chat.get_history()
-                        st.rerun() 
-                    except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
-            else:
-                st.info("💡 โปรดพิมพ์คำถามลงในกล่องข้อความก่อนกดส่งครับ")
-
-        st.markdown("---")
         st.markdown("#### 📜 บทสนทนาและคำตอบ (คำตอบล่าสุดจะเด้งอยู่บนสุดเสมอ):")
         
-        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน โดยแกะโครงสร้างจากประวัติแท้ของ Google
+        # แสดงผลข้อความแชทเรียงลำดับจากใหม่สุดอยู่ด้านบน
         if st.session_state.gemini_chat_history:
             for message in reversed(st.session_state.gemini_chat_history):
                 role = "👤 คุณ" if message.role == "user" else "🤖 AI"
@@ -141,10 +113,31 @@ else:
                 
                 # ดึงข้อความจากชิ้นส่วนข้อความ (Parts) ออกมาแสดงผล
                 text_content = "".join([part.text for part in message.parts if part.text])
-                
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
         else:
-            st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
+            st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
+            
+        # 🔴 จุดเด่นใหม่: ใช้ st.chat_input บล็อกพิมพ์สีขาวติดขอบล่างอัตโนมัติ รองรับการกด Enter คีย์บอร์ดทันที
+        user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
+        
+        if user_prompt:
+            with st.spinner("⏳ กำลังประมวลผลข้อมูล..."):
+                try:
+                    # สร้างการเชื่อมต่อใหม่สดเพื่อป้องกันช่องสัญญาณปิด
+                    client = genai.Client(api_key=api_key)
+                    chat = client.chats.create(
+                        model=model_name,
+                        history=st.session_state.gemini_chat_history
+                    )
+                    
+                    # ส่งข้อความคำถามใหม่เข้าไปในระบบ
+                    response = chat.send_message(user_prompt)
+                    
+                    # เซฟประวัติแชทล่าสุดเก็บไว้แล้วรีเฟรชหน้าจอทันที
+                    st.session_state.gemini_chat_history = chat.get_history()
+                    st.rerun() 
+                except Exception as e:
+                    st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
 
     # ===================================================
     # แท็บที่ 2: ระบบรูปภาพ (Vision)
