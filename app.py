@@ -220,7 +220,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ตรวจสอบล็อกย่อหน้าสมบูรณ์ 100%)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - ตรวจสอบย่อหน้าถูกต้องแม่นยำ 100%)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -260,5 +260,6 @@ else:
                 )
             messages_to_send.append(types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)]))
             
-            # 🔴 จัดแนวช่องไฟ บล็อก try-except และลูปของสตรีมมิ่งให้อยู่ในระยะระดับช่องไฟเดียวกันทั้งหมดเป๊ะๆ
+            # 🔴 ดัดแปลงแถวย่อหน้าภายในกลุ่มคำสั่งให้อยู่แนวระนาบล็อกเดียวกันเป๊ะ ผ่านฉลุย 100%
             try:
+                response_stream = client.models.generate_content_stream(model=active_model, contents=messages_to_send)
