@@ -3,6 +3,8 @@ import google.genai as genai
 from google.genai import types
 from PIL import Image
 import time
+import os
+import pickle
 
 # 1. ตั้งค่าหน้าเว็บสไตล์ ChatGPT Light Mode
 st.set_page_config(
@@ -84,7 +86,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดโดยการวิ่งเข้าหา ID หมุดแบบสมูท
+# 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดเมื่อคำตอบงอกออกมา
 def live_scroll():
     st.markdown('<div id="chat-end"></div>', unsafe_allow_html=True)
     st.markdown("""
@@ -99,8 +101,43 @@ def live_scroll():
         </script>
     """, unsafe_allow_html=True)
 
+# 💾 ระบบจัดเก็บประวัติลงในเครื่องเซิร์ฟเวอร์แบบถาวร (Persistent)
+HISTORY_FILE = "persistent_chat_history.pkl"
+
+def save_history_to_disk(history_data):
+    try:
+        # แปลงข้อมูลประวัติแชทดิบเก็บลงไฟล์ pickle ปลอดภัยภาษาไทยไม่เพี้ยน
+        simplified_history = []
+        for msg in history_data:
+            text_content = "".join([part.text for part in msg.parts if part.text])
+            simplified_history.append({"role": msg.role, "text": text_content})
+        with open(HISTORY_FILE, "wb") as f:
+            pickle.dump(simplified_history, f)
+    except:
+        pass
+
+def load_history_from_disk():
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "rb") as f:
+                simplified_history = pickle.load(f)
+            # แปลงกลับมาเป็นคลาสออบเจกต์ที่กูเกิลใช้งานได้ตามเดิม
+            restored_history = []
+            for item in simplified_history:
+                restored_history.append(
+                    types.Content(role=item["role"], parts=[types.Part.from_text(text=item["text"])])
+                )
+            return restored_history
+        except:
+            return []
+    return []
+
 # 🔑 ดึงรหัส API Key จากระบบความปลอดภัยหลังบ้านอัตโนมัติ (ไม่ต้องกรอกหน้าเว็บ)
 api_key = st.secrets.get("GEMINI_API_KEY", "")
+
+# โหลดประวัติเก่าจากหน่วยความจำดิสก์มาสแตนด์บายตั้งแต่เริ่มเปิดแอป
+if "gemini_chat_history" not in st.session_state:
+    st.session_state.gemini_chat_history = load_history_from_disk()
 
 # 2. แถบเมนูด้านซ้าย (Sidebar)
 with st.sidebar:
@@ -111,10 +148,15 @@ with st.sidebar:
         st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์หลังบ้าน")
     st.markdown("---")
     
+    # 🔴 ปุ่มล้างข้อมูลและทำลายหน่วยความจำถาวรเพื่อเริ่มคุยเรื่องใหม่
     if st.button("🗑️ ล้างประวัติการสนทนาทั้งหมด"):
         st.session_state.gemini_chat_history = []
         st.session_state.image_result = ""
         st.session_state.audio_result = ""
+        if os.path.exists(HISTORY_FILE):
+            os.remove(HISTORY_FILE) # ลบไฟล์บันทึกทิ้งจากไดรฟ์เซิร์ฟเวอร์
+        st.success("🧹 ล้างหน่วยความจำแชทเรียบร้อยแล้ว!")
+        time.sleep(1)
         st.rerun()
         
     st.markdown("---")
@@ -133,9 +175,6 @@ else:
     primary_model = "gemini-3.6-flash"
     backup_model = "gemini-3.1-pro-preview" 
 
-    # สร้างคลังเก็บประวัติแชทแท้ของ Google SDK
-    if "gemini_chat_history" not in st.session_state:
-        st.session_state.gemini_chat_history = []
     if "image_result" not in st.session_state:
         st.session_state.image_result = ""
     if "audio_result" not in st.session_state:
@@ -148,7 +187,7 @@ else:
     ])
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - Streaming + ปักหมุดเลื่อนจอ)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - Streaming + ประวัติถาวร)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -210,27 +249,3 @@ else:
                                 live_scroll()
                                 time.sleep(0.01)
                     except Exception as backup_err:
-                        st.error(f"ระบบหนาแน่นชั่วคราว โปรดพิมพ์ถามใหม่อีกครั้งครับ: {backup_err}")
-                else:
-                    st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {e}")
-            
-            if full_response_text:
-                new_user_msg = types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)])
-                new_ai_msg = types.Content(role="model", parts=[types.Part.from_text(text=full_response_text)])
-                st.session_state.gemini_chat_history.append(new_user_msg)
-                st.session_state.gemini_chat_history.append(new_ai_msg)
-                st.rerun()
-
-    # ===================================================
-    # แท็บที่ 2: ระบบรูปภาพ (Vision - จัดระเบียบย่อหน้าตรงล็อก 100%)
-    # ===================================================
-    with tab_image:
-        st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
-        if st.session_state.image_result:
-            st.markdown(f"<div class='ai-bubble'><b>🤖 ผลการวิเคราะห์รูปภาพล่าสุด:</b><br>{st.session_state.image_result}</div>", unsafe_allow_html=True)
-            st.markdown("---")
-            
-        uploaded_image = st.file_uploader("เลือกอัปโหลดรูปภาพของคุณ:", type=["jpg", "jpeg", "png"])
-        if uploaded_image:
-            img = Image.open(uploaded_image)
-            st.image(img, caption="📷 รูปภาพที่คุณอัปโหลด", width="stretch")
