@@ -12,22 +12,42 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ปรับ CSS ให้ตัวหนังสือเป็นสีดำคมชัด และทำสไตล์กล่องข้อความให้สวยงาม
+# 🎨 อัปเดต CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
 st.markdown("""
     <style>
+    /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
+    @import url('https://googleapis.com');
+    
+    html, body, [data-testid="stSidebar"], .stApp, p, label, li, span, h1, h2, h3, h4, h5, h6 {
+        font-family: 'Sarabun', sans-serif !important;
+    }
+    
     .stApp {
         background-color: #ffffff;
         color: #202123;
     }
-    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามของภาพ/เสียงให้เป็นสีดำ */
+    
+    /* 🔴 จุดเด่นใหม่: บังคับตัวหนังสือในกล่องพิมพ์แชท (st.chat_input) ด้านล่างสุดให้ใหญ่และชัดเจนขึ้น */
+    .stChatInput textarea {
+        font-size: 18px !important;  /* ขยายขนาดตัวหนังสือที่พิมพ์ */
+        color: #000000 !important;
+        line-height: 1.5 !important;
+        font-family: 'Sarabun', sans-serif !important;
+    }
+    
+    /* บังคับตัวหนังสือในกล่องพิมพ์ข้อความคำถามของภาพ/เสียงให้ใหญ่ขึ้นและเป็นสีดำ */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
+        font-size: 16px !important;
         color: #000000 !important;
         background-color: #f0f4f9 !important;
         -webkit-text-fill-color: #000000 !important;
+        font-family: 'Sarabun', sans-serif !important;
     }
+    
     label, p, span, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
     }
+    
     .stButton>button {
         background-color: #10a37f !important; 
         color: white !important;
@@ -35,29 +55,37 @@ st.markdown("""
         border: none !important;
         padding: 10px 24px !important;
         font-weight: bold;
+        font-family: 'Sarabun', sans-serif !important;
     }
+    
+    /* จัดระเบียบกล่องแชทฝั่งผู้ใช้ให้อ่านง่าย */
     .user-bubble {
         background-color: #f0f4f9;
-        padding: 12px 18px;
+        padding: 14px 20px;
         border-radius: 15px;
-        margin: 10px 0;
+        margin: 12px 0;
         border-right: 5px solid #1a7f64;
         color: #000000;
+        font-size: 16px;
+        line-height: 1.6;
     }
+    
+    /* จัดระเบียบกล่องแชทฝั่ง AI ให้อ่านง่ายเป็นสัดส่วน */
     .ai-bubble {
         background-color: #f7f7f8;
-        padding: 15px 20px;
+        padding: 16px 22px;
         border-radius: 15px;
-        margin: 10px 0 25px 0;
+        margin: 12px 0 25px 0;
         border-left: 5px solid #10a37f;
         color: #000000;
+        font-size: 16px;
+        line-height: 1.6;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดโดยการวิ่งเข้าหา ID หมุดแบบสมูท
 def live_scroll():
-    # ใช้หมุดเว็บ HTML (เสถียรสุด ไม่โดนเบราว์เซอร์บล็อก)
     st.markdown('<div id="chat-end"></div>', unsafe_allow_html=True)
     st.markdown("""
         <script>
@@ -131,7 +159,7 @@ else:
             else:
                 st.write("ยังไม่มีประวัติการคุย พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดของหน้าจอเพื่อเริ่มคุยได้เลยครับ 👇")
 
-        # กล่องพิมพ์ล็อกขอบล่างถาวร พิมพ์แล้วกด Enter บนคีย์บอร์ดได้ทันที
+        # กล่องพิมพ์ล็อกขอบล่างถาวร พิมพ์แล้วกด Enter บนคีย์บอร์ดได้ทันที (ตัวหนังสือใหญ่ขึ้นแล้ว)
         user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
         
         if user_prompt:
@@ -188,7 +216,7 @@ else:
                 st.rerun()
 
     # ===================================================
-    # แท็บที่ 2: ระบบรูปภาพ (Vision - แก้ไขโครงสร้างเรียบร้อย)
+    # แท็บที่ 2: ระบบรูปภาพ (Vision)
     # ===================================================
     with tab_image:
         st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
@@ -204,21 +232,3 @@ else:
             
             if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
                 with st.spinner("⏳ AI กำลังสแกนพิกเซลภาพ..."):
-                    client = genai.Client(api_key=api_key)
-                    try:
-                        response = client.models.generate_content(model=primary_model, contents=[img, image_prompt])
-                        st.session_state.image_result = response.text
-                        st.rerun()
-                    except Exception as e:
-                        if "503" in str(e) or "UNAVAILABLE" in str(e):
-                            try:
-                                response = client.models.generate_content(model=backup_model, contents=[img, image_prompt])
-                                st.session_state.image_result = response.text
-                                st.rerun()
-                            except Exception as backup_err:
-                                st.error(f"เซิร์ฟเวอร์หนาแน่นชั่วคราว: {backup_err}")
-                        else:
-                            st.error(f"เกิดข้อผิดพลาด: {e}")
-                live_scroll()
-
-    # ===================================================
