@@ -107,14 +107,8 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
-        serializable_data = {}
-        for session_id, chat_list in all_chats.items():
-            serializable_data[session_id] = []
-            for msg in chat_list:
-                text_content = "".join([part.text for part in msg.parts if part.text])
-                serializable_data[session_id].append({"role": msg.role, "text": text_content})
         with open(ALL_CHATS_FILE, "wb") as f:
-            pickle.dump(serializable_data, f)
+            pickle.dump(all_chats, f)
     except:
         pass
 
@@ -122,15 +116,7 @@ def load_all_chats_from_disk():
     if os.path.exists(ALL_CHATS_FILE):
         try:
             with open(ALL_CHATS_FILE, "rb") as f:
-                serializable_data = pickle.load(f)
-            all_chats = {}
-            for session_id, chat_list in serializable_data.items():
-                all_chats[session_id] = []
-                for item in chat_list:
-                    all_chats[session_id].append(
-                        types.Content(role=item["role"], parts=[types.Part.from_text(text=item["text"])])
-                    )
-            return all_chats
+                return pickle.load(f)
         except:
             return {}
     return {}
@@ -175,7 +161,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = "".join([part.text for part in chat_history[0].parts if part.text])
+            first_user_msg = chat_history[0]["text"]
             button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -230,7 +216,7 @@ else:
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # ===================================================
-    # แท็บที่ 1: ระบบข้อความ (Text Chat - ดึงประวัติเก่าอัตโนมัติ)
+    # แท็บที่ 1: ระบบข้อความ (Text Chat - แก้ไขระบบตอบกลับเสร็จสมบูรณ์)
     # ===================================================
     with tab_text:
         st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
@@ -239,12 +225,10 @@ else:
         with chat_container:
             st.markdown("#### 📜 บทสนทนาและคำตอบของห้องนี้:")
             if current_chat_history:
-                # 🔴 แก้ไขย่อหน้าภายในลูปให้อยู่ในบล็อกล็อกที่ถูกต้องเรียบร้อยแล้วครับ
                 for message in current_chat_history:
-                    role = "👤 คุณ" if message.role == "user" else "🤖 AI"
-                    bubble_class = "user-bubble" if message.role == "user" else "ai-bubble"
-                    text_content = "".join([part.text for part in message.parts if part.text])
-                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{text_content}</div>", unsafe_allow_html=True)
+                    role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
+                    bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
+                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
             else:
                 st.write("ห้องแชทนี้ยังว่างเปล่า พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดเพื่อเริ่มบันทึกประวัติเรื่องใหม่ได้เลยครับ 👇")
 
@@ -261,4 +245,21 @@ else:
             client = genai.Client(api_key=api_key)
             full_response_text = ""
             
+            # 🛠️ จัดรูปแบบประวัติแชทเก่าส่งขึ้นระบบ Google อย่างเป็นทางการ ป้องกัน AI นิ่งเงียบ
             messages_to_send = []
+            for msg in current_chat_history:
+                messages_to_send.append(
+                    types.Content(
+                        role="user" if msg["role"] == "user" else "model",
+                        parts=[types.Part.from_text(text=msg["text"])]
+                    )
+                )
+            
+            try:
+                # สร้าง Session แชทแท้หลังบ้านและยิงคำสั่งแบบสตรีมมิ่งพิมพ์ทีละบรรทัด
+                chat = client.chats.create(model=primary_model, history=messages_to_send)
+                response_stream = chat.send_message_stream(user_prompt)
+                
+                for chunk in response_stream:
+                    if chunk.text:
+                        full_response_text += chunk.text
