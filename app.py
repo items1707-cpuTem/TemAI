@@ -14,9 +14,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: ตกแต่งหน้าต่างแชทให้ไอคอนและกล่องข้อมูลอยู่ในระดับสายตาอย่างสวยงามเป็นระเบียบ
+# 🎨 CSS: จัดโครงสร้างช่องไฟใหม่ทั้งหมด ป้องกันตัวหนังสือและสระภาษาไทยทับกันเด็ดขาด
 st.markdown("""
     <style>
+    /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
     @import url('https://googleapis.com');
     
     html, body, [data-testid="stSidebar"], .stApp, p, label, li, span, h1, h2, h3, h4, h5, h6 {
@@ -28,12 +29,14 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ขยายขนาดตัวอักษรในช่องพิมพ์คำถามหลัก */
+    /* 🔴 แก้ไขจุดสำคัญ: เพิ่มพื้นที่ความสูงและระยะบรรทัดของกล่องพิมพ์แชท ป้องกันตัวหนังสือไทยทับกัน */
     .stChatInput textarea {
         font-size: 18px !important;  
         color: #000000 !important;
-        line-height: 1.5 !important;
+        line-height: 1.8 !important; /* ขยายระยะห่างระหว่างบรรทัดให้สระไม่ทับกัน */
         font-family: 'Sarabun', sans-serif !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
     }
     
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
@@ -200,7 +203,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🔴 เลือกใช้โมเดลรุ่นใหม่ล่าสุดขวัญใจนักพัฒนาขีดความสามารถสูง
+    # 🛠️ ใช้โมเดลรุ่นที่เป็นทางการและอัปเดตล่าสุดของ Google
     active_model = "gemini-2.5-flash"
 
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
@@ -262,12 +265,9 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ 🔴 แก้ไขรื้อโครงสร้างย่อหน้าใหม่ให้ลื่นไหล 100% แบบไม่มี try-except ซ้อนชั้นพัง
+        # รันระบบสตรีมมิ่งเส้นตรง ปลอดภัย และเสถียร 100%
         response_stream = client.models.generate_content_stream(
             model=active_model,
             contents=contents_payload
         )
         
-        for chunk in response_stream:
-            if chunk.text:
-                full_response_text += chunk.text
