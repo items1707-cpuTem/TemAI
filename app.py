@@ -53,7 +53,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 จัดโครงสร้างกรอบกล่องสี่เหลี่ยมผืนผ้า All-in-One ขอบล่างสุดให้รวมเป็นชิ้นเดียวกันสวยงาม */
+    /* จัดโครงสร้างกรอบกล่องสี่เหลี่ยมผืนผ้า All-in-One ขอบล่างสุดให้รวมเป็นชิ้นเดียวกันสวยงาม */
     .chat-input-box-wrapper {
         border: 1px solid #d1d5db !important;
         border-radius: 24px !important;
@@ -77,7 +77,7 @@ st.markdown("""
         padding: 0 !important;
     }
     
-    /* บังคับซ่อนกรอบเดิมและข้อความแนะนำ แนะนำของระบบอัปโหลดให้เหลือแค่ตัวไอคอนกลมขนาดมินิมอล */
+    /* บังคับซ่อนกรอบเดิมและข้อความแนะนำ ของระบบอัปโหลดให้เหลือแค่ตัวไอคอนกลมขนาดมินิมอล */
     div[data-testid="stFileUploader"] section {
         padding: 0 !important;
         border: none !important;
@@ -174,7 +174,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
+            first_msg = "💬 " + chat_history["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -248,5 +248,6 @@ else:
         if voice_recorder_data:
             st.session_state.temp_voice = voice_recorder_data
 
-    # 🔴 จัดล็อกพิกเซลช่องว่างและย่อหน้าเยื้องด้านล่าง with col_send_btn: ให้ตรงระนาบแถวเดียวกัน ผ่านฉลุย 100%
+    # 🔴 แก้ไขย่อหน้าตรงนี้เรียบร้อยแล้ว: เคาะเว้นวรรค 8 ช่องไฟเท่ากันเป๊ะ ๆ ไร้ปัญหาแน่นอน
     with col_send_btn:
+        submit_btn = st.button("🚀 ส่ง", key="send_submit_action")
