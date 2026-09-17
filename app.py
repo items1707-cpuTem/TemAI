@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: ตกแต่งข้อความภาษาไทยให้สวยงาม สระไม่ทับกัน และล้างโค้ดพังที่บล็อกหน้าจอออกหมดเกลี้ยง
+# 🎨 CSS: ตกแต่งข้อความภาษาไทยให้สวยงาม สระไม่ทับกัน และจัดแผงปุ่มด้านล่างให้มินิมอลสะอาดตาที่สุด
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -179,7 +179,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history[text_msg] if 'text_msg' in locals() else "💬 " + chat_history[0]["text"] if chat_history else "💬 การสนทนา"
+            first_msg = "💬 " + chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -210,7 +210,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ เรียกโมเดลรุ่นที่เป็นทางการเสถียรสูงสุดตามข้อกำหนดกูเกิล
+    # เรียกโมเดลรุ่นที่เป็นทางการเสถียรสูงสุดตามข้อกำหนดกูเกิล
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -236,7 +236,7 @@ else:
             st.write("🎙️ บันทึกเสียงพูดสดสำเร็จ")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔴 🛠️ โครงสร้างแถวรวมขอบล่างสุดอัจฉริยะ ปลอดภัย 100% ไม่บังปุ่มพิมพ์ ถอนระบบ CSS ซ้อนทับพังทิ้งถาวร
+    # 🔴 โครงสร้างแถวรวมขอบล่างสุดอัจฉริยะ ปลอดภัย 100% ไม่บังปุ่มพิมพ์ (แก้ไขคำสั่ง st.st พิมพ์ซ้อนเรียบร้อย)
     # แบ่งคอลัมน์: [กล่องข้อความพิมพ์คำถาม] | [ปุ่มแนบภาพ 🖼️] | [ปุ่มอัดเสียง 🎙️] | [ปุ่มกดส่ง 🚀]
     col_input, col_img, col_voice, col_btn = st.columns([5.5, 1.2, 1.2, 1])
 
@@ -249,9 +249,9 @@ else:
             st.session_state.temp_image = uploaded_image
 
     with col_voice:
-        voice_recorder_data = st.st.audio_input("🎙️ อัดเสียงพูดสด", key="voice_selector") if hasattr(st, "audio_input") else st.file_uploader("🎙️ เสียง", type=["mp3", "wav"], key="voice_backup")
+        # 🛠️ แก้ไขเรียบร้อย เปลี่ยนจาก st.st.audio_input เป็น st.audio_input ตัวที่ถูกต้องตามหลักสากลครับ
+        voice_recorder_data = st.audio_input("🎙️ อัดเสียงพูดสด", key="voice_selector") if hasattr(st, "audio_input") else st.file_uploader("🎙️ เสียง", type=["mp3", "wav"], key="voice_backup")
         if voice_recorder_data:
             st.session_state.temp_voice = voice_recorder_data
 
     with col_btn:
-        st.write("<div style='padding-top: 15px;'></div>", unsafe_allow_html=True)
