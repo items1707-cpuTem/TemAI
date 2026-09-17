@@ -117,10 +117,9 @@ st.markdown("""
         min-height: 0 !important;
     }
 
-    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ ไม่มีตัวหนังสือ เหลือแค่ไอคอน ดูเป็นเนื้อเดียวกับกล่องแชท */
+    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ เหลือแค่ไอคอนอิโมจิเดียว ไม่มีตัวหนังสือ/ไอคอนเดิมซ้อนทับ */
     div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
-        font-size: 0 !important;
-        color: transparent !important;
+        position: relative !important;
         padding: 0 !important;
         margin: 0 !important;
         background-color: transparent !important;
@@ -134,21 +133,34 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: none !important;
+        overflow: hidden !important;
     }
     div[data-testid="stFileUploader"] button:hover, div[data-testid="stAudioInput"] button:hover {
         background-color: #eaecef !important;
     }
-    div[data-testid="stFileUploader"] button svg, div[data-testid="stAudioInput"] button svg {
-        display: none !important;
+    /* ซ่อนทุกสิ่งที่อยู่ข้างในปุ่มเดิม (ตัวหนังสือ Upload/Browse files, ไอคอน SVG เดิม) ไม่ให้เหลือค้างเลย */
+    div[data-testid="stFileUploader"] button > *,
+    div[data-testid="stAudioInput"] button > * {
+        visibility: hidden !important;
+        opacity: 0 !important;
     }
-    /* แปะไอคอนอิโมจิของจริงทับตำแหน่งปุ่ม แทนตัวหนังสือ/ไอคอนเดิมของ Streamlit ทั้งหมด */
+    /* แปะไอคอนอิโมจิเดียวไว้กึ่งกลางปุ่มแทนที่ทั้งหมด รับประกันไม่ซ้อนกับอะไร */
+    div[data-testid="stFileUploader"] button::after,
+    div[data-testid="stAudioInput"] button::after {
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+    }
     div[data-testid="stFileUploader"] button::after {
         content: "🖼️";
-        font-size: 18px !important;
     }
     div[data-testid="stAudioInput"] button::after {
         content: "🎙️";
-        font-size: 18px !important;
     }
 
     /* บังคับซ่อนข้อความ/คำอธิบาย/ป้ายแนะนำที่รกรุงรังทั้งหมดออกให้เกลี้ยง 100% */
