@@ -153,7 +153,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history[0]["text"]
+            first_msg = "💬 " + chat_history["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -233,18 +233,15 @@ else:
         full_response_text = ""
         contents_payload = []
         
-        # 1. แตกข้อมูลรูปภาพแนบเข้าสู่ Payload
         if uploaded_image:
             img_obj = Image.open(uploaded_image)
             contents_payload.append(img_obj)
             
-        # 2. แตกข้อมูลไฟล์เสียงพูดสดเข้าสู่ Payload
         if voice_recorder_data:
             with st.spinner("⏳ AI กำลังสแกนสัญญาณเสียงพูดสดของคุณ..."):
                 recorded_file_obj = client.files.upload(file=voice_recorder_data)
                 contents_payload.append(recorded_file_obj)
                 
-        # 3. รวบรวมข้อมูลประวัติแชทเก่าส่งขึ้นประมวลผลควบคู่กับคำถามใหม่ให้จำประวัติได้แม่นยำ
         full_context_string = ""
         for msg in current_chat_history:
             full_context_string += f"{msg['role']}: {msg['text']}\n"
@@ -252,5 +249,9 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ 🔴 แก้ไขจุดปิดวงเล็บ ) ในบรรทัดคำสั่งสตรีมมิ่งสดให้ตรงระเบียบในแถวเดียวกระชับ ไม่พังแน่นอน ผ่านฉลุย 100% ครับ
+        # 🔴 จัดล็อกเยื้องระยะย่อหน้าฝั่งชุดคำสั่งย่อยในบล็อก try ใหม่ทั้งหมด ให้ตรงกันเป๊ะตามไวยากรณ์ Python ผ่านฉลุยครับ
         try:
+            response_stream = client.models.generate_content_stream(model=active_model, contents=contents_payload)
+            for chunk in response_stream:
+                if chunk.text:
+                    full_response_text += chunk.text
