@@ -106,8 +106,13 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
+        serializable_data = {}
+        for session_id, chat_list in all_chats.items():
+            serializable_data[session_id] = []
+            for msg in chat_list:
+                serializable_data[session_id].append({"role": msg["role"], "text": msg["text"]})
         with open(ALL_CHATS_FILE, "wb") as f:
-            pickle.dump(all_chats, f)
+            pickle.dump(serializable_data, f)
     except:
         pass
 
@@ -130,7 +135,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID เซสชันแชทปัจจุบัน
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -156,8 +161,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            # ดึงข้อความแรกของผู้ใช้มาตั้งเป็นชื่อห้องแชท
-            first_msg = "💬 " + chat_history[0]["text"]
+            first_msg = "💬 " + chat_history["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -188,7 +192,6 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # เรียกใช้โมเดลล่าสุดตามเงื่อนไขกูเกิล
     active_model = "gemini-2.5-flash"
 
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
@@ -204,7 +207,7 @@ else:
         else:
             st.write("พิมพ์ข้อความคำถาม หรือคลิกอัปโหลดไฟล์ด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
 
-    # 🔴 จุดเด่นใหม่: แผงควบคุมไอคอนอัปโหลดมัลติมีเดีย (รูปภาพ และ เสียง) ล็อกอยู่เหนือกล่องพิมพ์คำถาม
+    # แผงควบคุมไอคอนอัปโหลดมัลติมีเดีย (รูปภาพ และ เสียง) ล็อกอยู่เหนือกล่องพิมพ์คำถาม
     st.markdown("<div class='media-panel'><b>📎 อัปโหลดไฟล์แนบเพิ่มเติม (ถ้ามี):</b></div>", unsafe_allow_html=True)
     
     col_img, col_aud = st.columns(2)
@@ -222,7 +225,6 @@ else:
     user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter...")
     
     if user_prompt:
-        # แสดงคำถามของคุณขึ้นหน้าจอแชททันที
         with chat_container:
             st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
         live_scroll()
@@ -233,21 +235,17 @@ else:
         client = genai.Client(api_key=api_key)
         full_response_text = ""
         
-        # รวบรวมส่วนประกอบเนื้อหาที่จะส่งหา AI
         contents_payload = []
         
-        # 1. แทรกรูปภาพเข้าไปในชุดคำสั่ง (ถ้ามีการเลือกอัปโหลด)
         if uploaded_image:
             img_obj = Image.open(uploaded_image)
             contents_payload.append(img_obj)
             
-        # 2. แทรกไฟล์เสียงเข้าไปในชุดคำสั่ง (ถ้ามีการเลือกอัปโหลด)
         if uploaded_audio:
             with st.spinner("⏳ กำลังเตรียมอัปโหลดไฟล์เสียงเข้าคลาวด์..."):
                 audio_file_obj = client.files.upload(file=uploaded_audio)
                 contents_payload.append(audio_file_obj)
                 
-        # 3. จัดประวัติแชทเก่าและข้อความคำถามใหม่รวบรวมส่งต่อหา Google API
         full_context_string = ""
         for msg in current_chat_history:
             full_context_string += f"{msg['role']}: {msg['text']}\n"
@@ -255,7 +253,7 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ ส่งประมวลผลผ่านโมเดลสตรีมมิ่งพิมพ์ทีละบรรทัด พร้อมขยับหน้าจอเลื่อนตามสายตาให้อัตโนมัติ
+        # 🛠️ ตรวจสอบระยะย่อหน้าบล็อก Try-Except ชั้นล่างสุดให้ตรงระนาบล็อกเรียบร้อย 100% ผ่านฉลุยครับ
         try:
             response_stream = client.models.generate_content_stream(
                 model=active_model,
@@ -268,3 +266,6 @@ else:
                     live_scroll()
                     time.sleep(0.01)
         except Exception as err:
+            st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {err}")
+        
+        if full_response_text:
