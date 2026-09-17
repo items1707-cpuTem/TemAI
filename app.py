@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS มาตรฐาน: จัดฟอนต์และสระภาษาไทยให้สวยงาม แยกชั้นชัดเจน ไม่ทับซ้อนกัน และเปิดให้กล่องแชทรันได้ปกติ 100%
+# 🎨 CSS: จัดฟอนต์และสระภาษาไทยให้สวยงาม แยกชั้นชัดเจน ไม่ทับซ้อนกัน และเปิดให้กล่องแชทรันได้ปกติ 100%
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -163,7 +163,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
+            first_msg = "💬 " + chat_history["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -210,12 +210,12 @@ else:
 
     st.markdown("<div style='padding-top: 30px;'></div>", unsafe_allow_html=True)
 
-    # 🔴 🛠️ โครงสร้างแถวขอบล่างสุดแบบปลอดภัย 100% ยุบทุกอย่างมารวมอยู่ใน แถบเฟรมเดียวกัน (เสถียรที่สุด ไม่เกะกะสายตา)
+    # โครงสร้างแถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบเดียวกันอย่างเป็นระเบียบ
     st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
     col_input, col_img, col_voice = st.columns([5.5, 1.2, 1.2])
 
     with col_input:
-        # กล่องพิมพ์แชทอัจฉริยะมาตรฐานกลับมาใช้งานได้ 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดส่งข้อมูลได้ทันที!
+        # กล่องพิมพ์แชทมาตรฐานกลับมาแสดงผล 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดเพื่อสั่งส่งแชทได้ทันที!
         user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
 
     with col_img:
@@ -246,13 +246,12 @@ else:
             img_obj = Image.open(uploaded_image)
             contents_payload.append(img_obj)
             
-        # 2. เสียงพูดสด (ถ้ามีการกดปุ่มไมโครโฟนสีแดง 🎙️)
+        # 2. เสียงพูดสด (ถ้ามีการกดปุ่มไมโครโฟน 🎙️)
         if voice_recorder_data:
             with st.spinner("⏳ AI กำลังรับสัญญาณเสียงพูดสดของคุณ..."):
                 recorded_file_obj = client.files.upload(file=voice_recorder_data)
                 contents_payload.append(recorded_file_obj)
                 
-        # 3. จัดข้อมูลโครงสร้างประวัติแชทเก่า และเปิดระบบแปลภาษาอัตโนมัติรอบโลก
-        full_context_string = (
-            "You are an expert AI chatbot. Answer the user's prompt accurately. "
-            "Always respond in the EXACT SAME language that the user used to speak or type "
+        # 🛠️ 🔴 แก้ไขจุดตาย: เปลี่ยนเป็นข้อความบรรทัดเดียวตรง ๆ (Inline Text) ป้องกันวงเล็บหลุดพัง 100% ผ่านฉลุยชัวร์ครับ
+        full_context_string = "You are an expert AI chatbot. Answer the user's prompt accurately. Always respond in the EXACT SAME language that the user used to speak or type (If they use Thai, reply in Thai. If English, reply in English. Supports all languages globally).\n"
+        
