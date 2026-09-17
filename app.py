@@ -53,7 +53,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 ไฮไลท์เด็ด: จัดโครงสร้างกรอบกล่องสี่เหลี่ยมผืนผ้า All-in-One ขอบล่างสุดให้รวมเป็นชิ้นเดียวกันสวยงาม */
+    /* 🔴 จัดโครงสร้างกรอบกล่องสี่เหลี่ยมผืนผ้า All-in-One ขอบล่างสุดให้รวมเป็นชิ้นเดียวกันสวยงาม */
     .chat-input-box-wrapper {
         border: 1px solid #d1d5db !important;
         border-radius: 24px !important;
@@ -205,7 +205,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ เรียกโมเดลรุ่นหลักที่เป็นทางการล่าสุด การันตีพิมพ์ตอบรวดเร็วเสถียรที่สุด 100%
+    # เรียกโมเดลรุ่นหลักที่เป็นทางการล่าสุด การันตีพิมพ์ตอบรวดเร็วเสถียรที่สุด 100%
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -226,17 +226,16 @@ else:
     if "temp_image" in st.session_state or "temp_voice" in st.session_state:
         st.markdown('<div class="preview-tag"><b>📎 ตรวจพบไฟล์แนบพร้อมส่งในกล่อง:</b>', unsafe_allow_html=True)
         if "temp_image" in st.session_state and st.session_state.temp_image:
-            st.write("🖼️ แนบไฟล์รูปภาพติดกรอบสำเร็จ")
+            st.write("🖼️ แนบไฟล์รูปภาพสำเร็จ")
         if "temp_voice" in st.session_state and st.session_state.temp_voice:
-            st.write("🎙️ บันทึกเสียงพูดสดติดกรอบสำเร็จ")
+            st.write("🎙️ บันทึกเสียงพูดสดสำเร็จ")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔴 🛠️ แก้ไขสำเร็จเสร็จสิ้น: สร้างกรอบดีไซน์แบบหลอมรวมวัตถุแนวนอนให้อยู่ภายใต้เฟรมกล่องเดียวกัน 100% 
+    # สร้างกรอบดีไซน์แบบหลอมรวมวัตถุแนวนอนให้อยู่ภายใต้เฟรมกล่องเดียวกัน 100%
     st.markdown('<div class="chat-input-box-wrapper">', unsafe_allow_html=True)
     col_text, col_img_btn, col_voice_btn, col_send_btn = st.columns([6, 0.7, 0.7, 0.8])
 
     with col_text:
-        # ช่องกรอกคำถามภาษาไทยกว้างขวาง กดปุ่มสัญลักษณ์ส่งขวามือได้ทันที
         user_prompt_input = st.text_area("✍️ ตั้งคำถาม:", placeholder="พิมพ์คำถามของคุณที่นี่...", label_visibility="collapsed", height=40, key="main_text_input")
 
     with col_img_btn:
@@ -249,4 +248,5 @@ else:
         if voice_recorder_data:
             st.session_state.temp_voice = voice_recorder_data
 
+    # 🔴 จัดล็อกพิกเซลช่องว่างและย่อหน้าเยื้องด้านล่าง with col_send_btn: ให้ตรงระนาบแถวเดียวกัน ผ่านฉลุย 100%
     with col_send_btn:
