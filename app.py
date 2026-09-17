@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: ตกแต่งหน้าต่างแชท จัดขนาดไอคอนอัปโหลดให้เล็กมินิมอลพอดีสวยงาม และฝังอยู่ขวามือในช่องพิมพ์อย่างสมบูรณ์
+# 🎨 CSS: ตกแต่งช่องพิมพ์คำถามให้กว้างขวาง สระไทยไม่ทับกัน และฝังไอคอนมินิมอลไว้ขวามืออย่างสมบูรณ์
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ปรับแต่งกล่องพิมพ์แชทหลักให้สูงโปร่ง สระและวรรณยุกต์ไทยแยกชั้นสวยงาม ไม่ทับกัน */
+    /* ขยายความสูงช่องพิมพ์แชทหลัก สระภาษาไทยเรียงสวยงาม และเว้นพื้นที่ขวาพอดีสำหรับไอคอนมินิมอล */
     .stChatInput textarea {
         font-size: 16px !important;  
         color: #000000 !important;
@@ -37,7 +37,7 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
-        padding-right: 95px !important; /* เว้นพื้นที่ด้านขวาในกล่องไว้สำหรับแผงปุ่มอัปโหลด */
+        padding-right: 95px !important; /* เว้นระยะไม่ให้ตัวหนังสือไปทับไอคอนขวามือ */
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -79,63 +79,57 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* ปรับแต่งแผงปุ่มลอยมัลติมีเดียให้ฝังอยู่ในกล่องแชทหลักด้านขวามือพอดีสายตา */
+    /* 🔴 จัดพิกเซลตำแหน่งแผงไอคอนลอยให้ฝังอยู่มุมขวาด้านในของช่องพิมพ์แชทอย่างถาวรและปลอดภัย ไม่บล็อกการพิมพ์ */
     .floating-media-box {
         position: fixed;
         bottom: 54px;
         right: 4.8rem;
-        z-index: 1000;
+        z-index: 999;
         background: transparent;
         display: flex;
         gap: 6px;
+        align-items: center;
     }
     
-    /* ยุบส่วนประกอบกล่องอัปโหลดของดั้งเดิม ให้เหลือเพียงปุ่มไอคอนกลมขนาดเล็กมินิมอล */
-    div[data-testid="stFileUploader"] {
-        width: 34px !important;
-        min-width: 34px !important;
+    /* ยุบส่วนประกอบกล่องอัปโหลดและกล่องเสียงให้เหลือเพียงปุ่มไอคอนกลมขนาดเล็กมินิมอลพอดีสวยงาม */
+    div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
+        width: 32px !important;
+        min-width: 32px !important;
         padding: 0 !important;
         margin: 0 !important;
     }
-    div[data-testid="stFileUploader"] section {
+    div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
         padding: 0 !important;
         border: none !important;
         background: transparent !important;
     }
-    div[data-testid="stFileUploader"] button {
-        font-size: 15px !important;
+    /* ปรับปุ่มให้เล็กมินิมอลสไตล์ ChatGPT */
+    div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
+        font-size: 14px !important;
         padding: 0 !important;
         background-color: #f0f4f9 !important;
         border: 1px solid #d1d5db !important;
         border-radius: 50% !important;
-        width: 32px !important;
-        height: 32px !important;
+        width: 30px !important;
+        height: 30px !important;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    div[data-testid="stFileUploaderDropzone"] {
+    /* ซ่อนส่วนขยายที่รกรุงรังออกทั้งหมด */
+    div[data-testid="stFileUploaderDropzone"], div[data-testid="stAudioInputRecordState"] {
         display: none !important;
     }
     div[data-testid="stFileUploaderFileWidget"] {
         position: fixed;
-        bottom: 105px;
+        bottom: 100px;
         right: 4.8rem;
         background: #ffffff;
-        padding: 8px;
+        padding: 6px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        z-index: 1001;
-    }
-    
-    /* ตกแต่งกล่องพรีวิวไฟล์แนบที่เลือกไว้ */
-    .preview-box {
-        background-color: #f9fafb;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #e5e7eb;
-        margin-top: 10px;
+        box-shadow: 0 4px 12 rgba(0,0,0,0.1);
+        z-index: 1000;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -240,13 +234,12 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ เจาะลึกความรู้ ส่งรูปภาพ หรืออัดเสียงพูดส่งหา AI ได้ในช่องเดียว")
+st.markdown("คุยถามตอบ เจาะลึกความรู้ แนบรูปภาพ หรืออัดเสียงพูดได้ครบจบในกล่องเดียว")
 st.markdown("---")
 
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ ใช้โมเดลรุ่นที่เป็นทางการและเสถียรสูงสุดตามประกาศของ Google
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -259,15 +252,16 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ถาม หรือจิ้มไอคอนขวามือด้านล่างเพื่อแนบไฟล์ภาพ/ไฟล์เสียงเริ่มต้นคุยได้เลยครับ 👇")
+            st.write("พิมพ์คำถาม หรือกดไอคอนขวามือเพื่อแนบภาพ/อัดเสียงพูดคุยได้เลยครับ 👇")
 
-    # แผงควบคุมระบบอัดเสียงพูดสดส่งหา AI ทันที (วางอยู่เหนือช่องพิมพ์หลัก)
-    st.markdown("<div style='padding-top: 10px;'></div>", unsafe_allow_html=True)
-    voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงเพื่ออัดเสียงพูดของคุณสด ๆ ได้ทันที:", label_visibility="visible")
-
-    # ปุ่มลอยสำหรับกดแนบไฟล์ภาพและไฟล์เสียงแนบ ฝังตัวอยู่ในช่องแชทหลักด้านขวามือ
+    # 🔴 รวมทุกอย่างไว้ในกล่องแชทจุดเดียว: ไอคอนเลือกรูปภาพ 🖼️ และไอคอนอัดเสียงพูดสด 🎙️ ฝังตัวอยู่ทางมุมขวาในกรอบของช่องแชทเดียวกัน
     st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
     uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-    uploaded_audio = st.file_uploader("🎵", type=["mp3", "wav"], key="aud_box", label_visibility="collapsed")
+    voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # กล่องรับคำถามหลักสไตล์ ChatGPT แท้ พิมพ์เสร็จแล้วกดปุ่ม Enter บนคีย์บอร์ดเพื่อส่งข้อมูลหา AI ได้ทันที!
+    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
+    
+    # สั่งรันระบบเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบว่ามีการอัดเสียงพูดสดส่งเข้ามา
+    if user_prompt or voice_recorder_data:
