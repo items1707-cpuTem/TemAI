@@ -345,15 +345,41 @@ else:
         )
 
         with st.spinner("🤖 กำลังคิดคำตอบ..."):
-            try:
-                client = genai.Client(api_key=api_key)
-                response = client.models.generate_content(
-                    model=active_model,
-                    contents=content_parts if content_parts else [full_context_string],
-                )
-                ai_text = response.text
-            except Exception as e:
-                ai_text = f"⚠️ เกิดข้อผิดพลาด: {e}"
+            client = genai.Client(api_key=api_key)
+            ai_text = None
+            max_retries = 4
+            last_error = None
+
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model=active_model,
+                        contents=content_parts if content_parts else [full_context_string],
+                    )
+                    ai_text = response.text
+                    break  # สำเร็จแล้ว ออกจากลูปทันที
+                except Exception as e:
+                    last_error = e
+                    error_text = str(e)
+                    # เช็กว่าเป็น error ชั่วคราว (503 โมเดลคนใช้เยอะ / 429 คำขอถี่เกินไป) หรือไม่
+                    is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
+
+                    if is_temporary and attempt < max_retries - 1:
+                        wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
+                        st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่อีกครั้ง ({attempt + 1}/{max_retries - 1})...")
+                        time.sleep(wait_seconds)
+                        continue
+                    else:
+                        break
+
+            if ai_text is None:
+                error_text = str(last_error)
+                if ("503" in error_text) or ("UNAVAILABLE" in error_text):
+                    ai_text = "⚠️ ขออภัยครับ ตอนนี้เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นมาก ลองพิมพ์คำถามส่งใหม่อีกครั้งในอีกสักครู่นะครับ"
+                elif ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text):
+                    ai_text = "⚠️ ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้งครับ"
+                else:
+                    ai_text = f"⚠️ เกิดข้อผิดพลาด: {last_error}"
 
         # เพิ่มคำตอบ AI เข้าประวัติแชท
         current_chat_history.append({"role": "assistant", "text": ai_text})
