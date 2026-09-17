@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดโครงสร้างอักษรภาษาไทย สระและวรรณยุกต์แยกชั้นชัดเจน ไม่ทับกัน อ่านง่ายสบายตา
+# 🎨 CSS ขั้นสูง: ลบคำอธิบาย แถบแนะนำ ตัวหนังสือขนาดไฟล์ (No file chosen, 200MB) ออกทั้งหมด เหลือเฉพาะตัวไอคอนมินิมอลพอดีสวยงาม
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -67,28 +67,60 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 ซ่อนตัวหนังสือคำอธิบายรกรุงรัง (No file chosen, 200MB) ออกทั้งหมด เหลือเพียงไอคอนมินิมอลกะทัดรัด */
-    div[data-testid="stFileUploader"] section {
-        padding: 2px !important;
-        border: 1px dashed #d1d5db !important;
-        background-color: #f9fafb !important;
-        border-radius: 8px !important;
+    /* 🔴 สั่งซ่อนและย่นขนาดระบบอัปโหลดดั้งเดิม ให้เหลือขนาดเท่าปุ่มไอคอนกลมขนาดเล็กพอดีกรอบสายตา */
+    div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
+        width: 38px !important;
+        min-width: 38px !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
-    div[data-testid="stFileUploaderDropzone"] {
-        padding: 2px !important;
+    div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
     }
-    div[data-testid="stFileUploaderDropzoneInstructions"] {
+    div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
+        font-size: 16px !important;
+        padding: 0 !important;
+        background-color: #f0f4f9 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 50% !important;
+        width: 36px !important;
+        height: 36px !important;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* 🔴 บังคับซ่อนข้อความคำอธิบายแนะนำที่รกรุงรัง (No file chosen, คำอธิบายไมค์) ออกหมดเกลี้ยง 100% */
+    div[data-testid="stFileUploaderDropzone"], 
+    div[data-testid="stAudioInputRecordState"], 
+    div[data-testid="stFileUploaderFileWidget"] span, 
+    div[data-testid="stFileUploaderDropzoneInstructions"],
+    div[data-testid="stFileUploader"] label,
+    div[data-testid="stAudioInput"] label {
         display: none !important;
     }
-    
-    /* แผงพรีวิวแจ้งเตือนไฟล์แนบด้านล่าง */
-    .preview-box {
-        background-color: #f9fafb;
-        padding: 8px 12px;
+    div[data-testid="stFileUploaderFileWidget"] {
+        position: fixed;
+        bottom: 100px;
+        right: 4.8rem;
+        background: #ffffff;
+        padding: 6px;
         border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่ระนาบเดียวกันที่ขอบล่างสุด */
+    .custom-input-bar {
+        background-color: #f0f4f9;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid #d1d5db;
         margin-top: 10px;
+        display: flex !important;
+        align-items: center !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -193,7 +225,7 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ หรือแนบไฟล์รูปภาพ/อัดเสียงพูดโต้ตอบได้ทุกภาษาทั่วโลกในกล่องเดียว")
+st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ หรือแนบไฟล์รูปภาพ/อัดเสียงพูดโต้ตอบได้ทุกภาษาในแถบขอบล่างจุดเดียว")
 st.markdown("---")
 
 if not api_key:
@@ -211,48 +243,22 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ถามข้อมูล หรือแนบไฟล์ด้านล่างสุดเพื่อเริ่มต้นคุยได้เลยครับ 👇")
+            st.write("พิมพ์ถามข้อมูล หรือคลิกปุ่มไอคอนด้านล่างเพื่อเริ่มต้นคุยได้เลยครับ 👇")
 
-    # 🔴 แสดงแถบแจ้งพรีวิวขนาดเล็กเหนือกล่องแชทหากตรวจพบไฟล์แนบก่อนกดส่ง
-    if "temp_image" in st.session_state or "temp_voice" in st.session_state:
-        st.markdown('<div class="preview-box"><b>📎 ตรวจพบไฟล์แนบพร้อมส่ง:</b>', unsafe_allow_html=True)
-        if "temp_image" in st.session_state and st.session_state.temp_image:
-            st.write("🖼️ แนบไฟล์รูปภาพสำเร็จ")
-        if "temp_voice" in st.session_state and st.session_state.temp_voice:
-            st.write("🎙️ บันทึกเสียงพูดสดสำเร็จ")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
 
-    # 🔴 🛠️ เปลี่ยนโครงสร้างระบบแถวขอบล่างสุดแบบปลอดภัย 100% แยกคอลัมน์แนวนอนแบบล็อกตำแหน่งคงที่ ป้องกันกล่องข้อความหายถาวร!
-    # แบ่งคอลัมน์: [กล่องพิมพ์ข้อความมาตรฐาน st.chat_input] | [ปุ่มไอคอนแนบภาพ 🖼️] | [ปุ่มไอคอนอัดเสียง 🎙️]
-    col_input, col_img, col_voice = st.columns([6, 1, 1])
+    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่มีวันพัง
+    st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
+    col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
 
     with col_input:
         # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
-        user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
+        user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
 
     with col_img:
-        uploaded_image = st.file_uploader("🖼️ ภาพ", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="visible")
-        if uploaded_image:
-            st.session_state.temp_image = uploaded_image
+        uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
 
     with col_voice:
-        voice_recorder_data = st.audio_input("🎙️ อัดเสียง", key="voice_box", label_visibility="visible")
-        if voice_recorder_data:
-            st.session_state.temp_voice = voice_recorder_data
+        voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ระบบสั่งรัน: ประมวลผลเมื่อมีการกดปุ่ม Enter หรือกดส่งจากเครื่องมือไมโครโฟนสำเร็จ
-    if user_prompt or voice_recorder_data:
-        if voice_recorder_data and not user_prompt:
-            user_prompt = "[คำสั่งประมวลผลผ่านระบบเสียงพูดสดของคุณ]"
-            
-        with chat_container:
-            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
-        live_scroll()
-        
-        with chat_container:
-            response_placeholder = st.empty()
-            
-        client = genai.Client(api_key=api_key)
-        full_response_text = ""
-        contents_payload = []
-        
