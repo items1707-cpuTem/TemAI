@@ -1,5 +1,6 @@
 import streamlit as st
 import google.genai as genai
+from google.genai import types
 from PIL import Image
 import time
 import os
@@ -13,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: บังคับเปลี่ยนฟอนต์ภาษาไทยให้สวยงาม และปรับตัวอักษรตอนพิมพ์ถามให้ใหญ่ชัดเจน
+# 🎨 CSS: ตกแต่งหน้าต่างแชทให้ไอคอนและกล่องข้อมูลอยู่ในระดับสายตาอย่างสวยงามเป็นระเบียบ
 st.markdown("""
     <style>
     @import url('https://googleapis.com');
@@ -27,18 +28,11 @@ st.markdown("""
         color: #202123;
     }
     
+    /* ขยายขนาดตัวอักษรในช่องพิมพ์คำถามหลัก */
     .stChatInput textarea {
         font-size: 18px !important;  
         color: #000000 !important;
         line-height: 1.5 !important;
-        font-family: 'Sarabun', sans-serif !important;
-    }
-    
-    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
-        font-size: 16px !important;
-        color: #000000 !important;
-        background-color: #f0f4f9 !important;
-        -webkit-text-fill-color: #000000 !important;
         font-family: 'Sarabun', sans-serif !important;
     }
     
@@ -57,6 +51,7 @@ st.markdown("""
         width: 100%;
     }
     
+    /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
     .user-bubble {
         background-color: #f0f4f9;
         padding: 14px 20px;
@@ -68,6 +63,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
+    /* ดีไซน์กล่องคำตอบฝั่ง AI */
     .ai-bubble {
         background-color: #f7f7f8;
         padding: 16px 22px;
@@ -78,9 +74,34 @@ st.markdown("""
         font-size: 16px;
         line-height: 1.6;
     }
+    
+    /* ตกแต่งแผงกล่องไอคอนอัปโหลดด้านล่าง */
+    .media-panel {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #e5e5e5;
+        margin-bottom: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# 🛠️ ฟังก์ชันพิเศษระบบสมอเรือ: สั่งโฟกัสหน้าจอลงล่างสุดเมื่อคำตอบงอกออกมา
+def live_scroll():
+    st.markdown('<div id="chat-end"></div>', unsafe_allow_html=True)
+    st.markdown("""
+        <script>
+            var endPoint = window.parent.document.getElementById('chat-end');
+            if (endPoint) {
+                endPoint.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            } else {
+                var pageContainer = window.parent.document.querySelector('.main');
+                if (pageContainer) { pageContainer.scrollTop = pageContainer.scrollHeight; }
+            }
+        </script>
+    """, unsafe_allow_html=True)
+
+# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงดิสก์ถาวร
 ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
@@ -99,26 +120,30 @@ def load_all_chats_from_disk():
             return {}
     return {}
 
+# 🔑 ดึงรหัส API Key จากระบบ Secrets หลังบ้านอัตโนมัติ
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
+# เตรียมหน่วยความจำแชทหลัก
 if "all_chats" not in st.session_state:
     st.session_state.all_chats = load_all_chats_from_disk()
 
+# สร้าง ID เซสชันแชทปัจจุบัน
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
 if st.session_state.current_session_id not in st.session_state.all_chats:
     st.session_state.all_chats[st.session_state.current_session_id] = []
 
+# 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
     if api_key:
         st.success("✅ **สถานะคีย์:** เชื่อมต่ออัตโนมัติ")
     else:
-        st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์")
+        st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์หลังบ้าน")
         
     st.markdown("---")
     if st.button("➕ เริ่มต้นแชทใหม่ (New Chat)", key="new_chat_btn"):
@@ -127,19 +152,18 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.markdown("📂 **ประวัติคำถามเก่าของคุณ:**")
+    st.markdown("📂 **ห้องสนทนาเก่าของคุณ:**")
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_user_msg = chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
-            button_label = first_user_msg[:20] + "..." if len(first_user_msg) > 20 else first_user_msg
+            # ดึงข้อความแรกของผู้ใช้มาตั้งเป็นชื่อห้องแชท
+            first_msg = "💬 " + chat_history[0]["text"]
+            button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
             
         if session_id == st.session_state.current_session_id:
-            button_label = f"💬 👉 {button_label}"
-        else:
-            button_label = f"💬 {button_label}"
+            button_label = f"👉 {button_label}"
             
         if st.sidebar.button(button_label, key=f"session_{session_id}"):
             st.session_state.current_session_id = session_id
@@ -156,96 +180,91 @@ with st.sidebar:
         time.sleep(1)
         st.rerun()
 
+# 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ ดึงข้อมูลจาก**ข้อความ รูปภาพ และเสียง** ได้ในที่เดียวแบบฟรีๆ")
+st.markdown("คุยถามตอบ เจาะลึกความรู้ หรือส่งรูปภาพและไฟล์เสียงมาประมวลผลได้ในช่องเดียว")
 st.markdown("---")
 
 if not api_key:
-    st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในแถบเมนู Settings > Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
+    st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🔴 อัปเดตเปลี่ยนมาใช้ชื่อรุ่นโมเดลใหม่ล่าสุดตามประกาศของ Google
-    active_model = "gemini-3.6-flash"
-
-    if "image_result" not in st.session_state:
-        st.session_state.image_result = ""
-    if "audio_result" not in st.session_state:
-        st.session_state.audio_result = ""
-
-    tab_text, tab_image, tab_audio = st.tabs([
-        "💬 ถามตอบด้วยข้อความ", 
-        "🖼️ วิเคราะห์และอ่านรูปภาพ", 
-        "🎵 ถอดความสรุปจากเสียง"
-    ])
+    # เรียกใช้โมเดลล่าสุดตามเงื่อนไขกูเกิล
+    active_model = "gemini-2.5-flash"
 
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
-    with tab_text:
-        st.markdown("### 💬 พูดคุยถามข้อมูลทั่วไปแบบต่อเนื่อง")
-        
-        chat_container = st.container()
-        with chat_container:
-            st.markdown("#### 📜 บทสนทนาและคำตอบของห้องนี้:")
-            if current_chat_history:
-                for message in current_chat_history:
-                    role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
-                    bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
-                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
-            else:
-                st.write("ห้องแชทนี้ยังว่างเปล่า พิมพ์ข้อความคำถามในกล่องแชทด้านล่างสุดเพื่อเริ่มสนทนาได้เลยครับ 👇")
+    # กระดานแสดงผลหน้าจอแชท
+    chat_container = st.container()
+    with chat_container:
+        if current_chat_history:
+            for message in current_chat_history:
+                role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
+                bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
+                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
+        else:
+            st.write("พิมพ์ข้อความคำถาม หรือคลิกอัปโหลดไฟล์ด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
 
-        user_prompt = st.chat_input("พิมพ์คำถามใหม่ของคุณที่นี่ แล้วกด Enter...")
-        
-        if user_prompt:
-            with chat_container:
-                st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
-            
-            client = genai.Client(api_key=api_key)
-            
-            # รวมประวัติแชทเก่าและคำถามใหม่ให้เป็นสตรีงบรรทัดเดียว เพื่อให้โมเดลใหม่ตอบรับ 100%
-            full_prompt_content = ""
-            for msg in current_chat_history:
-                full_prompt_content += f"{msg['role']}: {msg['text']}\n"
-            full_prompt_content += f"user: {user_prompt}"
-            
-            try:
-                # เรียกประมวลผลผ่านโมเดลตัวใหม่ตามกฎการเชื่อมต่อของ Google 
-                response = client.models.generate_content(
-                    model=active_model,
-                    contents=full_prompt_content
-                )
-                full_response_text = response.text
-                
-                with chat_container:
-                    st.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                
-                st.session_state.all_chats[st.session_state.current_session_id].append({"role": "user", "text": user_prompt})
-                st.session_state.all_chats[st.session_state.current_session_id].append({"role": "model", "text": full_response_text})
-                save_all_chats_to_disk(st.session_state.all_chats)
-                st.rerun()
-            except Exception as err:
-                st.error(f"เกิดข้อผิดพลาดจากระบบ API: {err}")
-
-    with tab_image:
-        st.markdown("### 🖼️ ค้นหาข้อมูลเชิงลึกจากภาพ")
-        uploaded_image = st.file_uploader("เลือกอัปโหลดรูปภาพของคุณ:", type=["jpg", "jpeg", "png"], key="img_up")
+    # 🔴 จุดเด่นใหม่: แผงควบคุมไอคอนอัปโหลดมัลติมีเดีย (รูปภาพ และ เสียง) ล็อกอยู่เหนือกล่องพิมพ์คำถาม
+    st.markdown("<div class='media-panel'><b>📎 อัปโหลดไฟล์แนบเพิ่มเติม (ถ้ามี):</b></div>", unsafe_allow_html=True)
+    
+    col_img, col_aud = st.columns(2)
+    with col_img:
+        uploaded_image = st.file_uploader("🖼️ เลือกรูปภาพ", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
         if uploaded_image:
-            img = Image.open(uploaded_image)
-            st.image(img, caption="📷 รูปภาพที่คุณอัปโหลด", width="stretch")
-            image_prompt = st.text_input("ระบุสิ่งที่ต้องการให้ AI ค้นหาจากภาพ:", value="อธิบายภาพนี้สั้นๆ")
-            if st.button("🔍 สั่งวิเคราะห์รูปภาพ", key="btn_image"):
-                client = genai.Client(api_key=api_key)
-                response = client.models.generate_content(model=active_model, contents=[img, image_prompt])
-                st.session_state.image_result = response.text
-                st.rerun()
-        if st.session_state.image_result:
-            st.markdown(f"<div class='ai-bubble'><b>🤖 ผลการวิเคราะห์รูปภาพ:</b><br>{st.session_state.image_result}</div>", unsafe_allow_html=True)
-
-    with tab_audio:
-        st.markdown("### 🎵 สรุปและแกะเสียงข้อความ")
-        uploaded_audio = st.file_uploader("เลือกอัปโหลดไฟล์เสียงของคุณ:", type=["mp3", "wav"], key="aud_up")
+            st.image(uploaded_image, caption="📷 รูปภาพที่พร้อมส่ง", width=150)
+            
+    with col_aud:
+        uploaded_audio = st.file_uploader("🎵 เลือกไฟล์เสียง", type=["mp3", "wav"], label_visibility="collapsed")
         if uploaded_audio:
             st.audio(uploaded_audio)
-            audio_prompt = st.text_input("ระบุเป้าหมายในการถอดรหัสเสียง:", value="สรุปใจความสำคัญจากเสียงนี้")
-            if st.button("🎙️ สั่งประมวลผลเสียง", key="btn_audio"):
-                client = genai.Client(api_key=api_key)
-                audio_file = client.files.upload(file=uploaded_audio)
+
+    # กล่องค้นหา/ช่องพิมพ์ตั้งคำถามหลัก (กด Enter ส่งข้อมูลได้ทันที)
+    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter...")
+    
+    if user_prompt:
+        # แสดงคำถามของคุณขึ้นหน้าจอแชททันที
+        with chat_container:
+            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
+        live_scroll()
+        
+        with chat_container:
+            response_placeholder = st.empty()
+            
+        client = genai.Client(api_key=api_key)
+        full_response_text = ""
+        
+        # รวบรวมส่วนประกอบเนื้อหาที่จะส่งหา AI
+        contents_payload = []
+        
+        # 1. แทรกรูปภาพเข้าไปในชุดคำสั่ง (ถ้ามีการเลือกอัปโหลด)
+        if uploaded_image:
+            img_obj = Image.open(uploaded_image)
+            contents_payload.append(img_obj)
+            
+        # 2. แทรกไฟล์เสียงเข้าไปในชุดคำสั่ง (ถ้ามีการเลือกอัปโหลด)
+        if uploaded_audio:
+            with st.spinner("⏳ กำลังเตรียมอัปโหลดไฟล์เสียงเข้าคลาวด์..."):
+                audio_file_obj = client.files.upload(file=uploaded_audio)
+                contents_payload.append(audio_file_obj)
+                
+        # 3. จัดประวัติแชทเก่าและข้อความคำถามใหม่รวบรวมส่งต่อหา Google API
+        full_context_string = ""
+        for msg in current_chat_history:
+            full_context_string += f"{msg['role']}: {msg['text']}\n"
+        full_context_string += f"user: {user_prompt}"
+        
+        contents_payload.append(full_context_string)
+        
+        # 🛠️ ส่งประมวลผลผ่านโมเดลสตรีมมิ่งพิมพ์ทีละบรรทัด พร้อมขยับหน้าจอเลื่อนตามสายตาให้อัตโนมัติ
+        try:
+            response_stream = client.models.generate_content_stream(
+                model=active_model,
+                contents=contents_payload
+            )
+            for chunk in response_stream:
+                if chunk.text:
+                    full_response_text += chunk.text
+                    response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
+                    live_scroll()
+                    time.sleep(0.01)
+        except Exception as err:
