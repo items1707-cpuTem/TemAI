@@ -258,3 +258,4 @@ else:
         full_context_string += f"user: {user_prompt}"
         
         contents_payload.append(full_context_string)
+        
