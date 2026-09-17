@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: ตกแต่งข้อความภาษาไทยให้สวยงาม สระไม่ทับกัน และจัดแผงปุ่มด้านล่างให้มินิมอลสะอาดตาที่สุด
+# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน พิมพ์ยาวแค่ไหนก็อ่านง่าย
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ดีไซน์กล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
+    /* ดีไซน์กล่องพิมพ์แชทในคอลัมน์ให้สูงโปร่ง สระภาษาไทยแยกชั้นชัดเจน */
     div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
         font-size: 16px !important;
         color: #000000 !important;
@@ -51,7 +51,6 @@ st.markdown("""
         padding: 10px 24px !important;
         font-weight: bold;
         font-family: 'Sarabun', sans-serif !important;
-        width: 100%;
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
@@ -119,7 +118,7 @@ def live_scroll():
         </script>
     """, unsafe_allow_html=True)
 
-# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงดิสก์ถาวร
+# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงในดิสก์เซิร์ฟเวอร์แบบถาวร
 ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
@@ -236,7 +235,7 @@ else:
             st.write("🎙️ บันทึกเสียงพูดสดสำเร็จ")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔴 โครงสร้างแถวรวมขอบล่างสุดอัจฉริยะ ปลอดภัย 100% ไม่บังปุ่มพิมพ์ (แก้ไขคำสั่ง st.st พิมพ์ซ้อนเรียบร้อย)
+    # 🔴 โครงสร้างแถวรวมขอบล่างสุดอัจฉริยะ ปลอดภัย 100% ไม่บังปุ่มพิมพ์ 
     # แบ่งคอลัมน์: [กล่องข้อความพิมพ์คำถาม] | [ปุ่มแนบภาพ 🖼️] | [ปุ่มอัดเสียง 🎙️] | [ปุ่มกดส่ง 🚀]
     col_input, col_img, col_voice, col_btn = st.columns([5.5, 1.2, 1.2, 1])
 
@@ -249,9 +248,9 @@ else:
             st.session_state.temp_image = uploaded_image
 
     with col_voice:
-        # 🛠️ แก้ไขเรียบร้อย เปลี่ยนจาก st.st.audio_input เป็น st.audio_input ตัวที่ถูกต้องตามหลักสากลครับ
         voice_recorder_data = st.audio_input("🎙️ อัดเสียงพูดสด", key="voice_selector") if hasattr(st, "audio_input") else st.file_uploader("🎙️ เสียง", type=["mp3", "wav"], key="voice_backup")
         if voice_recorder_data:
             st.session_state.temp_voice = voice_recorder_data
 
+    # 🔴 จัดระเบียบย่อหน้าลูกข้างใต้คำสั่ง with col_btn: ให้เยื้องตรงพิกเซลล็อกอย่างสมบูรณ์แบบ ผ่านฉลุย 100%
     with col_btn:
