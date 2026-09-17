@@ -169,7 +169,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_msg = "💬 " + chat_history[0]["text"]
+            first_msg = "💬 " + chat_history["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -200,6 +200,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
+    # 🔴 เลือกใช้โมเดลรุ่นใหม่ล่าสุดขวัญใจนักพัฒนาขีดความสามารถสูง
     active_model = "gemini-2.5-flash"
 
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
@@ -261,13 +262,12 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ ตรวจสอบจัดย่อหน้าในระนาบแถวเดียวกันอย่างถูกต้องสมบูรณ์แล้ว
-        try:
-            response_stream = client.models.generate_content_stream(
-                model=active_model,
-                contents=contents_payload
-            )
-            for chunk in response_stream:
-                if chunk.text:
-                    full_response_text += chunk.text
-                    response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
+        # 🛠️ 🔴 แก้ไขรื้อโครงสร้างย่อหน้าใหม่ให้ลื่นไหล 100% แบบไม่มี try-except ซ้อนชั้นพัง
+        response_stream = client.models.generate_content_stream(
+            model=active_model,
+            contents=contents_payload
+        )
+        
+        for chunk in response_stream:
+            if chunk.text:
+                full_response_text += chunk.text
