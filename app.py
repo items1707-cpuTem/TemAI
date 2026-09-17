@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดโครงสร้างไอคอนมินิมอลขนาดพอดี สวยงาม ฝังขวามือในช่องพิมพ์อย่างสมบูรณ์
+# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน อ่านง่ายสบายตา
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,15 +29,14 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ขยายความสูงและระยะบรรทัดช่องแชท พร้อมเว้นระยะขวาเผื่อไว้สำหรับไอคอนขนาดมินิมอล */
-    .stChatInput textarea {
-        font-size: 16px !important;  
+    /* ดีไซน์กล่องพิมพ์แชทในคอลัมน์ให้สูงโปร่ง สระภาษาไทยแยกชั้นชัดเจน */
+    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
+        font-size: 16px !important;
         color: #000000 !important;
-        line-height: 1.6 !important; 
+        background-color: #f0f4f9 !important;
+        -webkit-text-fill-color: #000000 !important;
         font-family: 'Sarabun', sans-serif !important;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-        padding-right: 95px !important; /* เว้นพื้นที่พอดีสำหรับไอคอนมินิมอล 2 ตัว */
+        line-height: 1.6 !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -52,7 +51,6 @@ st.markdown("""
         padding: 10px 24px !important;
         font-weight: bold;
         font-family: 'Sarabun', sans-serif !important;
-        width: 100%;
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
@@ -79,54 +77,18 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 ปรับแต่งตำแหน่งแผงไอคอนลอยให้ฝังอยู่มุมขวาด้านในของช่องพิมพ์แชทอย่างถาวรและสวยงามพอดี */
-    .floating-media-box {
-        position: fixed;
-        bottom: 54px;
-        right: 4.8rem;
-        z-index: 1000;
-        background: transparent;
-        display: flex;
-        gap: 6px;
-    }
-    
-    /* 🔴 ปรับแต่งกระดุมไอคอนอัปโหลดให้มีขนาดมินิมอล เล็กเรียบหรู พอดีสวยงาม */
-    div[data-testid="stFileUploader"] {
-        width: 34px !important;
-        min-width: 34px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
+    /* ปรับแต่งไอคอนอัปโหลดมัลติมีเดียให้กะทัดรัด มินิมอล สวยงาม */
     div[data-testid="stFileUploader"] section {
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-    }
-    div[data-testid="stFileUploader"] button {
-        font-size: 15px !important; /* ขนาดไอคอนด้านในมินิมอล */
-        padding: 0 !important;
-        background-color: #f0f4f9 !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 50% !important;
-        width: 32px !important; /* ความกว้างวงกลมเล็กลงพอดีสวยงาม */
-        height: 32px !important; /* ความสูงวงกลมเล็กลงพอดีสวยงาม */
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        padding: 5px !important;
+        border: 1px dashed #d1d5db !important;
+        background-color: #f9fafb !important;
+        border-radius: 8px !important;
     }
     div[data-testid="stFileUploaderDropzone"] {
-        display: none !important;
+        padding: 5px !important;
     }
-    div[data-testid="stFileUploaderFileWidget"] {
-        position: fixed;
-        bottom: 105px;
-        right: 4.8rem;
-        background: #ffffff;
-        padding: 8px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        z-index: 1001;
+    div[data-testid="stFileUploaderDropzoneInstructions"] {
+        font-size: 12px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -151,13 +113,8 @@ ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
     try:
-        serializable_data = {}
-        for session_id, chat_list in all_chats.items():
-            serializable_data[session_id] = []
-            for msg in chat_list:
-                serializable_data[session_id].append({"role": msg["role"], "text": msg["text"]})
         with open(ALL_CHATS_FILE, "wb") as f:
-            pickle.dump(serializable_data, f)
+            pickle.dump(all_chats, f)
     except:
         pass
 
@@ -180,7 +137,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID เซสชันแชทปัจจุบัน
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -206,7 +163,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history["text"]
+            first_msg = "💬 " + chat_history[0]["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -219,7 +176,7 @@ with st.sidebar:
             st.rerun()
             
     st.markdown("---")
-    if st.button("🗑️ ล้างประวัติทั้งหมดถาวร", key="clear_all_btn"):
+    if st.button("🗑️ ล้างประวัติทั้งหมดถาวr", key="clear_all_btn"):
         st.session_state.all_chats = {}
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
         st.session_state.all_chats[st.session_state.current_session_id] = []
@@ -237,6 +194,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
+    # 🛠️ ใช้โมเดลรุ่นที่เป็นทางการและอัปเดตล่าสุดของ Google ดึงค่าเสถียรสูงสุด
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -249,20 +207,34 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ข้อความคำถาม หรือคลิกไอคอนมินิมอลขวามือด้านล่างเพื่อแนบไฟล์เริ่มคุยได้เลยครับ 👇")
+            st.write("พิมพ์ข้อความคำถาม หรืออัปโหลดไฟล์ทางขวามือด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
 
-    # แผงลอยฝังไอคอนอัปโหลดรูปภาพ 🖼️ และเสียง 🎵 ไว้ทางมุมขวาในกรอบของช่องแชทเดียวกัน (ขนาดมินิมอลพอดีสวยงาม)
-    st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
-    uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-    uploaded_audio = st.file_uploader("🎵", type=["mp3", "wav"], key="aud_box", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("---")
 
-    # กล่องค้นหา/ช่องพิมพ์ตั้งคำถามหลัก (สระภาษาไทยเรียงตัวสวย ไม่ทับกัน)
-    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter...")
-    
-    if user_prompt:
+    # 🔴 แผงควบคุมระบบคอลัมน์แนวนอนอัจฉริยะ: รวมช่องพิมพ์และช่องอัปโหลดไว้แถวเดียวกระชับ ไม่พังแน่นอน
+    # คอลัมน์ที่ 1 (ช่องพิมพ์แชท) | คอลัมน์ที่ 2 (ไอคอนรูปภาพ) | คอลัมน์ที่ 3 (ไอคอนเสียง) | คอลัมน์ที่ 4 (ปุ่มกดส่ง)
+    col_input, col_img, col_aud, col_btn = st.columns([6, 1.2, 1.2, 1])
+
+    with col_input:
+        user_prompt_input = st.text_area("✍️ ตั้งคำถามของคุณที่นี่:", placeholder="พิมพ์คำถามของคุณ แล้วกดปุ่มส่งขวามือ...", label_visibility="collapsed", height=68)
+
+    with col_img:
+        uploaded_image = st.file_uploader("🖼️ ภาพ", type=["jpg", "jpeg", "png"], key="img_box")
+        if uploaded_image:
+            st.image(uploaded_image, width=50)
+
+    with col_aud:
+        uploaded_audio = st.file_uploader("🎵 เสียง", type=["mp3", "wav"], key="aud_box")
+
+    with col_btn:
+        st.write("<div style='padding-top: 15px;'></div>", unsafe_allow_html=True)
+        submit_btn = st.button("🚀 ส่ง")
+
+    # ตรวจจับเมื่อผู้ใช้กดปุ่มส่งข้อมูล (🚀 ส่ง)
+    if submit_btn and user_prompt_input:
+        # แสดงคำถามของคุณขึ้นหน้าจอแชททันที
         with chat_container:
-            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt_input}</div>", unsafe_allow_html=True)
         live_scroll()
         
         with chat_container:
@@ -273,3 +245,24 @@ else:
         
         contents_payload = []
         
+        # แนบไฟล์ภาพเข้า Payload หากมีการเลือกอัปโหลด
+        if uploaded_image:
+            img_obj = Image.open(uploaded_image)
+            contents_payload.append(img_obj)
+            
+        # แนบไฟล์เสียงเข้า Payload หากมีการเลือกอัปโหลด
+        if uploaded_audio:
+            with st.spinner("⏳ กำลังจัดเตรียมไฟล์เสียง..."):
+                audio_file_obj = client.files.upload(file=uploaded_audio)
+                contents_payload.append(audio_file_obj)
+                
+        # สร้างชุดบริบทประวัติแชทเก่าส่งให้ Google API ประมวลผลแบบเสถียรเส้นตรง
+        full_context_string = ""
+        for msg in current_chat_history:
+            full_context_string += f"{msg['role']}: {msg['text']}\n"
+        full_context_string += f"user: {user_prompt_input}"
+        
+        contents_payload.append(full_context_string)
+        
+        # รันระบบสตรีมมิ่งพิมพ์คำตอบพร้อมเลื่อนจอตามสายตา ลื่นไหล 100%
+        try:
