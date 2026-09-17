@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดโครงสร้างช่องไฟใหม่ทั้งหมด ป้องกันตัวหนังสือและสระภาษาไทยทับกันเด็ดขาด
+# 🎨 CSS: จัดการพื้นที่กล่องพิมพ์แชทหลัก และซ่อนปุ่มดั้งเดิมเพื่อขยับไอคอนไปไว้ขวามือในช่องพิมพ์อย่างสวยงาม
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,22 +29,15 @@ st.markdown("""
         color: #202123;
     }
     
-    /* 🔴 แก้ไขจุดสำคัญ: เพิ่มพื้นที่ความสูงและระยะบรรทัดของกล่องพิมพ์แชท ป้องกันตัวหนังสือไทยทับกัน */
+    /* ขยายความสูงและระยะบรรทัดของกล่องพิมพ์แชทหลัก เพื่อให้สระไม่ทับกัน */
     .stChatInput textarea {
         font-size: 18px !important;  
         color: #000000 !important;
-        line-height: 1.8 !important; /* ขยายระยะห่างระหว่างบรรทัดให้สระไม่ทับกัน */
+        line-height: 1.8 !important; 
         font-family: 'Sarabun', sans-serif !important;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-    }
-    
-    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
-        font-size: 16px !important;
-        color: #000000 !important;
-        background-color: #f0f4f9 !important;
-        -webkit-text-fill-color: #000000 !important;
-        font-family: 'Sarabun', sans-serif !important;
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+        padding-right: 120px !important; /* เว้นพื้นที่ด้านขวาในกล่องไว้ใส่ไอคอน */
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -86,13 +79,51 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* ตกแต่งแผงกล่องไอคอนอัปโหลดด้านล่าง */
-    .media-panel {
-        background-color: #f9f9f9;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #e5e5e5;
-        margin-bottom: 5px;
+    /* สไตล์บาร์แผงไอคอนลอยที่จัดให้อยู่ตำแหน่งมุมขวาบนของกล่อง chat_input */
+    .floating-media-box {
+        position: fixed;
+        bottom: 82px;
+        right: 4.5rem;
+        z-index: 1000;
+        background: transparent;
+        display: flex;
+        gap: 5px;
+    }
+    
+    /* สไตล์ปรับแต่งกล่องอัปโหลดของ Streamlit ให้เหลือแค่ปุ่มไอคอนสไตล์ ChatGPT */
+    div[data-testid="stFileUploader"] {
+        width: 45px !important;
+        min-width: 45px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    div[data-testid="stFileUploader"] section {
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+    div[data-testid="stFileUploader"] button {
+        font-size: 20px !important;
+        padding: 5px !important;
+        background-color: #f0f4f9 !important;
+        border: 1px solid #e5e5e5 !important;
+        border-radius: 50% !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+    /* ซ่อนข้อความแนะนำไฟล์รกรุงรังให้เหลือแต่ไอคอนสะอาดตา */
+    div[data-testid="stFileUploaderDropzone"] {
+        display: none !important;
+    }
+    div[data-testid="stFileUploaderFileWidget"] {
+        position: fixed;
+        bottom: 135px;
+        right: 4.5rem;
+        background: #ffffff;
+        padding: 8px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1001;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -197,15 +228,13 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ เจาะลึกความรู้ หรือส่งรูปภาพและไฟล์เสียงมาประมวลผลได้ในช่องเดียว")
+st.markdown("คุยถามตอบ หรือคลิกส่งรูปภาพและไฟล์เสียงประมวลผลได้ในกล่องเดียว")
 st.markdown("---")
 
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ ใช้โมเดลรุ่นที่เป็นทางการและอัปเดตล่าสุดของ Google
     active_model = "gemini-2.5-flash"
-
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # กระดานแสดงผลหน้าจอแชท
@@ -217,23 +246,15 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ข้อความคำถาม หรือคลิกอัปโหลดไฟล์ด้านล่างเพื่อเริ่มคุยได้เลยครับ 👇")
+            st.write("พิมพ์ข้อความคำถาม หรือคลิกไอคอนขวามือด้านล่างเพื่อแนบรูปภาพ/เสียงเริ่มคุยได้เลยครับ 👇")
 
-    # แผงควบคุมไอคอนอัปโหลดมัลติมีเดีย (รูปภาพ และ เสียง) ล็อกอยู่เหนือกล่องพิมพ์คำถาม
-    st.markdown("<div class='media-panel'><b>📎 อัปโหลดไฟล์แนบเพิ่มเติม (ถ้ามี):</b></div>", unsafe_allow_html=True)
-    
-    col_img, col_aud = st.columns(2)
-    with col_img:
-        uploaded_image = st.file_uploader("🖼️ เลือกรูปภาพ", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-        if uploaded_image:
-            st.image(uploaded_image, caption="📷 รูปภาพที่พร้อมส่ง", width=150)
-            
-    with col_aud:
-        uploaded_audio = st.file_uploader("🎵 เลือกไฟล์เสียง", type=["mp3", "wav"], label_visibility="collapsed")
-        if uploaded_audio:
-            st.audio(uploaded_audio)
+    # 🔴 จุดเด่นใหม่: แผงลอยฝังไอคอนอัปโหลดรูปภาพ 🖼️ และเสียง 🎵 ไว้ทางมุมขวาในกรอบของช่องแชทเดียวกัน
+    st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
+    uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
+    uploaded_audio = st.file_uploader("🎵", type=["mp3", "wav"], key="aud_box", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # กล่องค้นหา/ช่องพิมพ์ตั้งคำถามหลัก (กด Enter ส่งข้อมูลได้ทันที)
+    # กล่องค้นหา/ช่องพิมพ์ตั้งคำถามหลัก (สระภาษาไทยเรียงตัวสวย ไม่ทับกัน)
     user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter...")
     
     if user_prompt:
@@ -249,25 +270,8 @@ else:
         
         contents_payload = []
         
+        # แนบไฟล์ภาพเข้า Payload หากมีการกดไอคอน
         if uploaded_image:
             img_obj = Image.open(uploaded_image)
             contents_payload.append(img_obj)
             
-        if uploaded_audio:
-            with st.spinner("⏳ กำลังเตรียมอัปโหลดไฟล์เสียงเข้าคลาวด์..."):
-                audio_file_obj = client.files.upload(file=uploaded_audio)
-                contents_payload.append(audio_file_obj)
-                
-        full_context_string = ""
-        for msg in current_chat_history:
-            full_context_string += f"{msg['role']}: {msg['text']}\n"
-        full_context_string += f"user: {user_prompt}"
-        
-        contents_payload.append(full_context_string)
-        
-        # รันระบบสตรีมมิ่งเส้นตรง ปลอดภัย และเสถียร 100%
-        response_stream = client.models.generate_content_stream(
-            model=active_model,
-            contents=contents_payload
-        )
-        
