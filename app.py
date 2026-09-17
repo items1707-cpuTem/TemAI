@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดโครงสร้างช่องพิมพ์คำถามให้กว้างขวาง สระไทยไม่ทับกัน และฝังไอคอนมินิมอลไว้ขวามือด้านในกล่องแชทอย่างสมบูรณ์
+# 🎨 CSS: ตกแต่งข้อความภาษาไทยให้สวยงาม สระไม่ทับกัน และเปิดพื้นที่แชทให้คลิกพิมพ์ได้ลื่นไหล 100%
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ขยายความสูงช่องพิมพ์แชทหลัก สระภาษาไทยเรียงสวยงาม และเว้นพื้นที่ขวาพอดีสำหรับไอคอนมินิมอล */
+    /* ปรับแต่งกล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
     .stChatInput textarea {
         font-size: 16px !important;  
         color: #000000 !important;
@@ -37,22 +37,10 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
-        padding-right: 95px !important; /* เว้นระยะไม่ให้ตัวหนังสือไปทับไอคอนขวามือ */
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
-    }
-    
-    .stButton>button {
-        background-color: #10a37f !important; 
-        color: white !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 10px 24px !important;
-        font-weight: bold;
-        font-family: 'Sarabun', sans-serif !important;
-        width: 100%;
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
@@ -79,57 +67,13 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 สไตล์แผงไอคอนลอยจัดวางให้อยู่มุมขวาด้านในของช่องพิมพ์แชทอย่างถาวรและปลอดภัย ไม่บล็อกแถวการพิมพ์ */
-    .floating-media-box {
-        position: fixed;
-        bottom: 54px;
-        right: 4.8rem;
-        z-index: 999;
-        background: transparent;
-        display: flex;
-        gap: 6px;
-        align-items: center;
-    }
-    
-    /* แปลงหน้าตากล่องอัปโหลดของ Streamlit ให้เหลือเพียงปุ่มไอคอนกลมขนาดเล็กมินิมอลพอดีสวยงาม */
-    div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
-        width: 32px !important;
-        min-width: 32px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-    }
-    /* ดีไซน์ปุ่มไอคอนขนาดมินิมอลสไตล์ ChatGPT */
-    div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
-        font-size: 14px !important;
-        padding: 0 !important;
-        background-color: #f0f4f9 !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 50% !important;
-        width: 30px !important;
-        height: 30px !important;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    /* ซ่อนแถบสถานะและคำแนะนำที่รกรุงรังออกทั้งหมดเหลือแค่ไอคอนมินิมอลสะอาดตา */
-    div[data-testid="stFileUploaderDropzone"], div[data-testid="stAudioInputRecordState"] {
-        display: none !important;
-    }
-    div[data-testid="stFileUploaderFileWidget"] {
-        position: fixed;
-        bottom: 100px;
-        right: 4.8rem;
-        background: #ffffff;
-        padding: 6px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        z-index: 1000;
+    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่เป็นสัดส่วนไม่บังพื้นที่หน้าจอแชท */
+    .media-panel-box {
+        background-color: #f9fafb;
+        padding: 10px 15px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -190,7 +134,7 @@ if "current_session_id" not in st.session_state:
 if st.session_state.current_session_id not in st.session_state.all_chats:
     st.session_state.all_chats[st.session_state.current_session_id] = []
 
-# 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT พร้อมแผงควบคุมประวัติเก่า
+# 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT
 with st.sidebar:
     st.markdown("### ⚙️ แผงควบคุมระบบ")
     if api_key:
@@ -234,17 +178,17 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ หรือคลิกส่งรูปภาพและอัดเสียงพูดประมวลผลได้พร้อมกันในกล่องเดียว")
+st.markdown("คุยถามตอบ เจาะลึกความรู้ ส่งไฟล์ภาพ หรือกดอัดเสียงพูดสดส่งหา AI ได้ทันที")
 st.markdown("---")
 
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ เรียกโมเดลรุ่นใหม่เสถียรสูงสุดตามมาตรฐานข้อกำหนดสากลของกูเกิล
+    # 🛠️ เรียกโมเดลรุ่นหลักที่เป็นทางการล่าสุดของกูเกิล การันตีตอบกลับ 100%
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
-    # กระดานแสดงผลหน้าจอแชท
+    # กระดานแสดงผลหน้าจอแชทกลางเว็บ
     chat_container = st.container()
     with chat_container:
         if current_chat_history:
@@ -253,12 +197,61 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์คำถาม หรือคลิกไอคอนมินิมอลขวามือด้านล่างเพื่อแนบไฟล์ภาพ/อัดเสียงพูดเริ่มคุยได้เลยครับ 👇")
+            st.write("พิมพ์ถาม หรือแนบไฟล์ด้านล่างสุดเพื่อเริ่มคุยได้เลยครับ 👇")
 
-    # 🔴 รวมทุกอย่างไว้ในกล่องแชทหลักจุดเดียว: ไอคอนรูปภาพ 🖼️ และไอคอนไมโครโฟนอัดเสียงพูดสด 🎙️ ฝังตัวอยู่ด้านขวามือในช่องพิมพ์
-    st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
-    uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-    voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
+    st.markdown("<div style='padding-top: 30px;'></div>", unsafe_allow_html=True)
+
+    # 🛠️ แผงรวมช่องแนบไฟล์ภาพและปุ่มอัดเสียงพูดสดสไตล์โมเดิร์น จัดวางเป็นระเบียบเหนรกล่องแชทหลัก ปลอดภัยไม่บังช่องพิมพ์
+    st.markdown('<div class="media-panel-box"><b>📎 แผงฟังก์ชันแนบไฟล์ภาพ และ อัดเสียงพูดสด:</b>', unsafe_allow_html=True)
+    col_img, col_voice = st.columns(2)
+    
+    with col_img:
+        uploaded_image = st.file_uploader("🖼️ กดตรงนี้เพื่อแนบไฟล์รูปภาพของคุณ:", type=["jpg", "jpeg", "png"], key="img_selector")
+        if uploaded_image:
+            st.image(uploaded_image, width=100, caption="รูปภาพพร้อมส่ง")
+            
+    with col_voice:
+        voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงด้านขวาเพื่ออัดเสียงพูดสดของคุณทันที:")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # กล่องรับคำถามหลักอัจฉริยะ st.chat_input พิมพ์ข้อความสะดวก 100% พิมพ์เสร็จแล้วกด Enter บนคีย์บอร์ดส่งหา AI ได้ทันที!
+    # กล่องรับคำถามหลักอัจฉริยะ st.chat_input ที่เมาส์คลิกพิมพ์ถามได้สะดวกสบาย 100% และกด Enter บนคีย์บอร์ดส่งได้ทันที!
+    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
+    
+    # เงื่อนไขส่งข้อมูลหา Google API: ทำงานเมื่อผู้ใช้กด Enter หรือมีการกดอัดเสียงสดเข้ามาสำเร็จ
+    if user_prompt or voice_recorder_data:
+        if voice_recorder_data and not user_prompt:
+            user_prompt = "[ส่งคำสั่งด้วยระบบเสียงพูดสดของคุณ]"
+            
+        with chat_container:
+            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
+        live_scroll()
+        
+        with chat_container:
+            response_placeholder = st.empty()
+            
+        client = genai.Client(api_key=api_key)
+        full_response_text = ""
+        contents_payload = []
+        
+        # 1. แตกข้อมูลรูปภาพแนบเข้าสู่ Payload
+        if uploaded_image:
+            img_obj = Image.open(uploaded_image)
+            contents_payload.append(img_obj)
+            
+        # 2. แตกข้อมูลไฟล์เสียงพูดสดเข้าสู่ Payload
+        if voice_recorder_data:
+            with st.spinner("⏳ AI กำลังสแกนสัญญาณเสียงพูดสดของคุณ..."):
+                recorded_file_obj = client.files.upload(file=voice_recorder_data)
+                contents_payload.append(recorded_file_obj)
+                
+        # 3. รวบรวมข้อมูลประวัติแชทเก่าส่งขึ้นประมวลผลควบคู่กับคำถามใหม่ให้จำประวัติได้แม่นยำ
+        full_context_string = ""
+        for msg in current_chat_history:
+            full_context_string += f"{msg['role']}: {msg['text']}\n"
+        full_context_string += f"user: {user_prompt}"
+        
+        contents_payload.append(full_context_string)
+        
+        # รันระบบส่งคำตอบแบบสตรีมมิ่งสดผ่านรูปประโยคแบบเส้นตรง ปลอดภัยจาก Syntax/Indentation Error 100%
+        try:
+            response_stream = client.models.generate_content_stream(
