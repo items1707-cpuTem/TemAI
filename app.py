@@ -30,13 +30,15 @@ st.markdown("""
     }
     
     /* ปรับแต่งกล่องพิมพ์แชทหลักให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
-    .stChatInput textarea {
+    /* เผื่อพื้นที่ขวาไว้ให้ไอคอนรูปภาพ + ไมค์ ลอยซ้อนอยู่ข้างในกล่องพอดี ไม่ทับตัวหนังสือ */
+    div[data-testid="stChatInput"] textarea {
         font-size: 16px !important;  
         color: #000000 !important;
         line-height: 1.6 !important; 
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
+        padding-right: 84px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -67,60 +69,109 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* สั่งซ่อนและย่นขนาดระบบอัปโหลดดั้งเดิม ให้เหลือขนาดเท่าปุ่มไอคอนกลมขนาดเล็กพอดีกรอบสายตา */
+    /* ==========================================================
+       ฝังไอคอนรูปภาพ + ไมค์ ไว้ "ข้างใน" กล่องพิมพ์ข้อความจริง ๆ
+       โดยวางซ้อน (overlay) ทับขอบขวาของ st.chat_input ด้วย position
+       ========================================================== */
+
+    /* แถวที่รวม chat_input + ปุ่มรูปภาพ + ปุ่มไมค์ ต้องเป็นจุดอ้างอิงตำแหน่ง */
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) {
+        position: relative !important;
+        align-items: center !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(1) {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+
+    /* คอลัมน์ไอคอนรูปภาพ (คอลัมน์ที่ 2) และไอคอนไมค์ (คอลัมน์ที่ 3)
+       ยกไปลอยซ้อนทับอยู่ในขอบขวาของกล่องแชทเดียวกัน ไม่กินพื้นที่แถวแยกอีกต่อไป */
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(2),
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(3) {
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: auto !important;
+        min-width: 0 !important;
+        flex: none !important;
+        z-index: 999 !important;
+        pointer-events: none !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(2) {
+        right: 46px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(3) {
+        right: 8px !important;
+    }
     div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
-        width: 38px !important;
-        min-width: 38px !important;
+        width: 34px !important;
+        min-width: 34px !important;
         padding: 0 !important;
         margin: 0 !important;
+        pointer-events: auto !important;
     }
     div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
         padding: 0 !important;
         border: none !important;
         background: transparent !important;
+        min-height: 0 !important;
     }
+
+    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ ไม่มีตัวหนังสือ เหลือแค่ไอคอน ดูเป็นเนื้อเดียวกับกล่องแชท */
     div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
-        font-size: 16px !important;
+        font-size: 0 !important;
+        color: transparent !important;
         padding: 0 !important;
-        background-color: #f0f4f9 !important;
-        border: 1px solid #d1d5db !important;
+        margin: 0 !important;
+        background-color: transparent !important;
+        border: none !important;
         border-radius: 50% !important;
-        width: 36px !important;
-        height: 36px !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-height: 32px !important;
         cursor: pointer;
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
+        box-shadow: none !important;
     }
-    /* บังคับซ่อนข้อความคำอธิบายแนะนำที่รกรุงรังออกหมดเกลี้ยง 100% */
-    div[data-testid="stFileUploaderDropzone"], 
-    div[data-testid="stAudioInputRecordState"], 
-    div[data-testid="stFileUploaderFileWidget"] span, 
-    div[data-testid="stFileUploaderDropzoneInstructions"],
-    div[data-testid="stFileUploader"] label,
-    div[data-testid="stAudioInput"] label {
+    div[data-testid="stFileUploader"] button:hover, div[data-testid="stAudioInput"] button:hover {
+        background-color: #eaecef !important;
+    }
+    div[data-testid="stFileUploader"] button svg, div[data-testid="stAudioInput"] button svg {
         display: none !important;
     }
+    /* แปะไอคอนอิโมจิของจริงทับตำแหน่งปุ่ม แทนตัวหนังสือ/ไอคอนเดิมของ Streamlit ทั้งหมด */
+    div[data-testid="stFileUploader"] button::after {
+        content: "🖼️";
+        font-size: 18px !important;
+    }
+    div[data-testid="stAudioInput"] button::after {
+        content: "🎙️";
+        font-size: 18px !important;
+    }
+
+    /* บังคับซ่อนข้อความ/คำอธิบาย/ป้ายแนะนำที่รกรุงรังทั้งหมดออกให้เกลี้ยง 100% */
+    div[data-testid="stFileUploaderDropzone"] small,
+    div[data-testid="stFileUploaderDropzoneInstructions"],
+    div[data-testid="stAudioInputRecordState"],
+    div[data-testid="stAudioInputWaveSurfer"],
+    div[data-testid="stFileUploader"] label,
+    div[data-testid="stAudioInput"] label,
+    div[data-testid="stFileUploaderDropzone"] svg {
+        display: none !important;
+    }
+    /* กล่องแสดงชื่อไฟล์ที่อัปโหลดแล้ว ให้ลอยเป็นการ์ดเล็ก ๆ เหนือกล่องแชท ไม่บังปุ่มไอคอน */
     div[data-testid="stFileUploaderFileWidget"] {
         position: fixed;
-        bottom: 100px;
+        bottom: 88px;
         right: 4.8rem;
         background: #ffffff;
-        padding: 6px;
+        padding: 6px 10px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 1000;
-    }
-    
-    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่ระนาบเดียวกันที่ขอบล่างสุด */
-    .custom-input-bar {
-        background-color: #f0f4f9;
-        padding: 8px 16px;
-        border-radius: 20px;
-        border: 1px solid #d1d5db;
-        margin-top: 10px;
-        display: flex !important;
-        align-items: center !important;
+        max-width: 220px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -247,8 +298,7 @@ else:
 
     st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
 
-    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่บังการคลิก
-    st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
+    # 🔴 ไอคอนรูปภาพและไมค์ลอยซ้อนอยู่ข้างในกล่องพิมพ์ข้อความเดียวกัน (ควบคุมตำแหน่งด้วย CSS ด้านบน)
     col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
 
     with col_input:
@@ -260,7 +310,6 @@ else:
 
     with col_voice:
         voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
     if user_prompt or uploaded_image or voice_recorder_data:
