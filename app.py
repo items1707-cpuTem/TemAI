@@ -231,7 +231,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    active_model = "gemini-2.5-flash"
+    active_model = "gemini-3.6-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
     # กระดานแสดงผลหน้าจอแชทกลางเว็บ
