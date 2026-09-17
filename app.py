@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน พิมพ์ยาวแค่ไหนก็อ่านง่าย
+# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน พิมพ์ยาวแค่ไหนก็อ่านง่ายสบายตา
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,14 +29,14 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ดีไซน์กล่องพิมพ์แชทในคอลัมน์ให้สูงโปร่ง สระภาษาไทยแยกชั้นชัดเจน */
-    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
-        font-size: 16px !important;
+    /* ดีไซน์กล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
+    .stChatInput textarea {
+        font-size: 16px !important;  
         color: #000000 !important;
-        background-color: #f0f4f9 !important;
-        -webkit-text-fill-color: #000000 !important;
+        line-height: 1.6 !important; 
         font-family: 'Sarabun', sans-serif !important;
-        line-height: 1.6 !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -91,14 +91,13 @@ st.markdown("""
         display: none !important;
     }
     
-    /* แผงพรีวิวแจ้งเตือนไฟล์แนบขนาดเล็ก */
-    .preview-box {
+    /* แผงล็อกกล่องมัลติมีเดียให้อยู่เป็นสัดส่วนสะอาดตา */
+    .media-panel-box {
         background-color: #f9fafb;
-        padding: 8px 12px;
-        border-radius: 8px;
+        padding: 10px 15px;
+        border-radius: 12px;
         border: 1px solid #e5e7eb;
-        font-size: 14px;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -118,7 +117,7 @@ def live_scroll():
         </script>
     """, unsafe_allow_html=True)
 
-# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงในดิสก์เซิร์ฟเวอร์แบบถาวร
+# 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงดิสก์ถาวร
 ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
 def save_all_chats_to_disk(all_chats):
@@ -203,7 +202,7 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ เจาะลึกความรู้ ส่งไฟล์ภาพ หรือกดอัดเสียงพูดสดโต้ตอบทุกภาษาได้ในแถบขอบล่างจุดเดียว")
+st.markdown("คุยถามตอบ เจาะลึกความรู้ ส่งไฟล์ภาพ หรือกดอัดเสียงพูดสดโต้ตอบทุกภาษาได้ในจุดเดียว")
 st.markdown("---")
 
 if not api_key:
@@ -224,33 +223,40 @@ else:
         else:
             st.write("พิมพ์ถาม หรือส่งไฟล์ภาพ/อัดเสียงทางด้านขวามือด้านล่างสุดเพื่อเริ่มคุยได้เลยครับ 👇")
 
-    st.markdown("<div style='padding-top: 40px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top: 30px;'></div>", unsafe_allow_html=True)
 
-    # แสดงผลพรีวิวแจ้งเตือนขนาดกะทัดรัดเมื่อตรวจพบไฟล์แนบก่อนกดส่ง
-    if "temp_image" in st.session_state or "temp_voice" in st.session_state:
-        st.markdown('<div class="preview-box"><b>📎 ตรวจพบไฟล์แนบพร้อมส่ง:</b>', unsafe_allow_html=True)
-        if "temp_image" in st.session_state and st.session_state.temp_image:
-            st.write("🖼️ แนบไฟล์รูปภาพสำเร็จ")
-        if "temp_voice" in st.session_state and st.session_state.temp_voice:
-            st.write("🎙️ บันทึกเสียงพูดสดสำเร็จ")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # 🔴 โครงสร้างแถวรวมขอบล่างสุดอัจฉริยะ ปลอดภัย 100% ไม่บังปุ่มพิมพ์ 
-    # แบ่งคอลัมน์: [กล่องข้อความพิมพ์คำถาม] | [ปุ่มแนบภาพ 🖼️] | [ปุ่มอัดเสียง 🎙️] | [ปุ่มกดส่ง 🚀]
-    col_input, col_img, col_voice, col_btn = st.columns([5.5, 1.2, 1.2, 1])
-
-    with col_input:
-        user_prompt_input = st.text_area("✍️ ตั้งคำถาม:", placeholder="พิมพ์ข้อความคำถามของคุณที่นี่...", label_visibility="collapsed", height=68)
-
+    # 🛠️ แผงรวมช่องแนบไฟล์ภาพและปุ่มอัดเสียงพูดสดสไตล์โมเดิร์น จัดวางเป็นระเบียบเหนือกล่องแชทหลัก ปลอดภัยไม่บังพื้นที่การพิมพ์
+    st.markdown('<div class="media-panel-box"><b>📎 แผงฟังก์ชันแนบไฟล์ภาพ และ อัดเสียงพูดสด:</b>', unsafe_allow_html=True)
+    col_img, col_voice = st.columns(2)
+    
     with col_img:
-        uploaded_image = st.file_uploader("🖼️ ภาพ", type=["jpg", "jpeg", "png"], key="img_selector", label_visibility="visible")
+        uploaded_image = st.file_uploader("🖼️ กดตรงนี้เพื่อแนบไฟล์รูปภาพของคุณ:", type=["jpg", "jpeg", "png"], key="img_selector", label_visibility="collapsed")
         if uploaded_image:
-            st.session_state.temp_image = uploaded_image
-
+            st.image(uploaded_image, width=100, caption="รูปภาพพร้อมส่ง")
+            
     with col_voice:
-        voice_recorder_data = st.audio_input("🎙️ อัดเสียงพูดสด", key="voice_selector") if hasattr(st, "audio_input") else st.file_uploader("🎙️ เสียง", type=["mp3", "wav"], key="voice_backup")
-        if voice_recorder_data:
-            st.session_state.temp_voice = voice_recorder_data
+        voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงด้านขวาเพื่ออัดเสียงพูดสดของคุณทันที:", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # 🔴 จัดระเบียบย่อหน้าลูกข้างใต้คำสั่ง with col_btn: ให้เยื้องตรงพิกเซลล็อกอย่างสมบูรณ์แบบ ผ่านฉลุย 100%
-    with col_btn:
+    # 🔴 ตัวควบคุมความสมบูรณ์แบบสูงสุด: ใช้กล่องรับคำถามมาตรฐาน st.chat_input บรรทัดเดียวตรงตัว ปราศจากบั๊ก Indentation 100%
+    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
+    
+    # สั่งรันระบบ: ทำงานเมื่อมีการพิมพ์ข้อความแล้วกด Enter หรือตรวจพบการอัดเสียงสำเร็จ
+    if user_prompt or voice_recorder_data:
+        if voice_recorder_data and not user_prompt:
+            user_prompt = "[ส่งคำสั่งด้วยระบบเสียงพูดสดของคุณ]"
+            
+        with chat_container:
+            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
+        live_scroll()
+        
+        with chat_container:
+            response_placeholder = st.empty()
+            
+        client = genai.Client(api_key=api_key)
+        full_response_text = ""
+        contents_payload = []
+        
+        if uploaded_image:
+            img_obj = Image.open(uploaded_image)
+            contents_payload.append(img_obj)
