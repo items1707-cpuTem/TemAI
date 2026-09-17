@@ -174,7 +174,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID เซสชันแชทปัจจุบัน
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[-1]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -237,7 +237,30 @@ else:
     # กระดานแสดงผลหน้าจอแชทกลางเว็บ
     chat_container = st.container()
     with chat_container:
-           st.markdown('</div>', unsafe_allow_html=True)
+        if current_chat_history:
+            for message in current_chat_history:
+                role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
+                bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
+                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
+        else:
+            st.write("พิมพ์ถามข้อมูล หรือคลิกปุ่มไอคอนด้านล่างเพื่อเริ่มต้นคุยได้เลยครับ 👇")
+
+    st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
+
+    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่บังการคลิก
+    st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
+    col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
+
+    with col_input:
+        # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
+        user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
+
+    with col_img:
+        uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
+
+    with col_voice:
+        voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
     if user_prompt or uploaded_image or voice_recorder_data:
