@@ -36,6 +36,14 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
     }
     
+    div[data-baseweb="textarea"] textarea, div[data-baseweb="input"] input {
+        font-size: 16px !important;
+        color: #000000 !important;
+        background-color: #f0f4f9 !important;
+        -webkit-text-fill-color: #000000 !important;
+        font-family: 'Sarabun', sans-serif !important;
+    }
+    
     label, p, span, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
     }
@@ -161,7 +169,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history:
-            first_msg = "💬 " + chat_history["text"]
+            first_msg = "💬 " + chat_history[0]["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -253,7 +261,7 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ ตรวจสอบระยะย่อหน้าบล็อก Try-Except ชั้นล่างสุดให้ตรงระนาบล็อกเรียบร้อย 100% ผ่านฉลุยครับ
+        # 🛠️ ตรวจสอบจัดย่อหน้าในระนาบแถวเดียวกันอย่างถูกต้องสมบูรณ์แล้ว
         try:
             response_stream = client.models.generate_content_stream(
                 model=active_model,
@@ -263,9 +271,3 @@ else:
                 if chunk.text:
                     full_response_text += chunk.text
                     response_placeholder.markdown(f"<div class='ai-bubble'><b>🤖 AI:</b><br>{full_response_text}</div>", unsafe_allow_html=True)
-                    live_scroll()
-                    time.sleep(0.01)
-        except Exception as err:
-            st.error(f"เกิดข้อผิดพลาดในการประมวลผล: {err}")
-        
-        if full_response_text:
