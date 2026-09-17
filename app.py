@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS ขั้นสูง: ลบคำอธิบาย แถบแนะนำ ตัวหนังสือขนาดไฟล์ (No file chosen, 200MB) ออกทั้งหมด เหลือเฉพาะตัวไอคอนมินิมอลพอดีสวยงาม
+# 🎨 CSS ขั้นสูง: ลบคำอธิบาย แถบแนะนำ ตัวหนังสือขนาดไฟล์ออกทั้งหมด เหลือเฉพาะตัวไอคอนมินิมอลพอดีสวยงาม
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -67,7 +67,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* 🔴 สั่งซ่อนและย่นขนาดระบบอัปโหลดดั้งเดิม ให้เหลือขนาดเท่าปุ่มไอคอนกลมขนาดเล็กพอดีกรอบสายตา */
+    /* สั่งซ่อนและย่นขนาดระบบอัปโหลดดั้งเดิม ให้เหลือขนาดเท่าปุ่มไอคอนกลมขนาดเล็กพอดีกรอบสายตา */
     div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
         width: 38px !important;
         min-width: 38px !important;
@@ -92,7 +92,7 @@ st.markdown("""
         align-items: center;
         justify-content: center;
     }
-    /* 🔴 บังคับซ่อนข้อความคำอธิบายแนะนำที่รกรุงรัง (No file chosen, คำอธิบายไมค์) ออกหมดเกลี้ยง 100% */
+    /* บังคับซ่อนข้อความคำอธิบายแนะนำที่รกรุงรังออกหมดเกลี้ยง 100% */
     div[data-testid="stFileUploaderDropzone"], 
     div[data-testid="stAudioInputRecordState"], 
     div[data-testid="stFileUploaderFileWidget"] span, 
@@ -200,7 +200,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
+            first_msg = "💬 " + chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -247,7 +247,7 @@ else:
 
     st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
 
-    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่มีวันพัง
+    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่บังการคลิก
     st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
     col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
 
@@ -262,3 +262,4 @@ else:
         voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
