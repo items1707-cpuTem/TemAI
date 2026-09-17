@@ -246,6 +246,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
+    # 🛠️ ใช้โมเดลรุ่นที่เป็นทางการและเสถียรสูงสุดตามประกาศของ Google
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -260,15 +261,13 @@ else:
         else:
             st.write("พิมพ์ถาม หรือจิ้มไอคอนขวามือด้านล่างเพื่อแนบไฟล์ภาพ/ไฟล์เสียงเริ่มต้นคุยได้เลยครับ 👇")
 
-    # 🔴 จุดเด่นที่ 1: แผงควบคุมระบบอัดเสียงพูดสดส่งหา AI ทันที (วางอยู่เหนือช่องพิมพ์หลัก)
+    # แผงควบคุมระบบอัดเสียงพูดสดส่งหา AI ทันที (วางอยู่เหนือช่องพิมพ์หลัก)
     st.markdown("<div style='padding-top: 10px;'></div>", unsafe_allow_html=True)
     voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงเพื่ออัดเสียงพูดของคุณสด ๆ ได้ทันที:", label_visibility="visible")
 
-    # 🔴 จุดเด่นที่ 2: ปุ่มลอยสำหรับกดแนบไฟล์ภาพและไฟล์เสียงแนบ ฝังตัวอยู่ในช่องแชทหลักด้านขวามือ
+    # ปุ่มลอยสำหรับกดแนบไฟล์ภาพและไฟล์เสียงแนบ ฝังตัวอยู่ในช่องแชทหลักด้านขวามือ
     st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
     uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
     uploaded_audio = st.file_uploader("🎵", type=["mp3", "wav"], key="aud_box", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # แสดงพื้นที่พรีวิวแจ้งเตือนขนาดเล็กหากมีการเลือกแนบรูปภาพหรือไฟล์เสียงค้างไว้
-    if uploaded_image or uploaded_audio:
