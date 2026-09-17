@@ -43,6 +43,16 @@ st.markdown("""
         color: #000000 !important;
     }
     
+    .stButton>button {
+        background-color: #10a37f !important; 
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        font-weight: bold;
+        font-family: 'Sarabun', sans-serif !important;
+    }
+    
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
     .user-bubble {
         background-color: #f0f4f9;
@@ -248,10 +258,3 @@ else:
         full_context_string += f"user: {user_prompt}"
         
         contents_payload.append(full_context_string)
-        
-        # 🔴 จัดล็อกเยื้องระยะย่อหน้าฝั่งชุดคำสั่งย่อยในบล็อก try ใหม่ทั้งหมด ให้ตรงกันเป๊ะตามไวยากรณ์ Python ผ่านฉลุยครับ
-        try:
-            response_stream = client.models.generate_content_stream(model=active_model, contents=contents_payload)
-            for chunk in response_stream:
-                if chunk.text:
-                    full_response_text += chunk.text
