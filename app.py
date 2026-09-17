@@ -237,29 +237,57 @@ else:
     # กระดานแสดงผลหน้าจอแชทกลางเว็บ
     chat_container = st.container()
     with chat_container:
-        if current_chat_history:
-            for message in current_chat_history:
-                role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
-                bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
-                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
-        else:
-            st.write("พิมพ์ถามข้อมูล หรือคลิกปุ่มไอคอนด้านล่างเพื่อเริ่มต้นคุยได้เลยครับ 👇")
-
-    st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
-
-    # 🔴 แถวขอบล่างสุดแบบปลอดภัย ยุบรวมช่องแชทและปุ่มไอคอนให้อยู่ในแถบผืนเดียวกัน สวยงามและระบบไม่บังการคลิก
-    st.markdown('<div class="custom-input-bar">', unsafe_allow_html=True)
-    col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
-
-    with col_input:
-        # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
-        user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
-
-    with col_img:
-        uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-
-    with col_voice:
-        voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
+           st.markdown('</div>', unsafe_allow_html=True)
 
     # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
+    if user_prompt or uploaded_image or voice_recorder_data:
+
+        # เตรียมข้อความที่จะแสดงในกล่องฝั่งผู้ใช้
+        display_text = user_prompt if user_prompt else "📎 ส่งไฟล์แนบ"
+
+        # เพิ่มข้อความผู้ใช้เข้าประวัติแชท
+        current_chat_history.append({"role": "user", "text": display_text})
+
+        # เตรียมเนื้อหาที่จะส่งเข้า Gemini API (ข้อความ + ไฟล์แนบถ้ามี)
+        content_parts = []
+
+        if user_prompt:
+            content_parts.append(user_prompt)
+
+        if uploaded_image is not None:
+            image = Image.open(uploaded_image)
+            content_parts.append(image)
+
+        if voice_recorder_data is not None:
+            audio_bytes = voice_recorder_data.read()
+            content_parts.append(
+                types.Part.from_bytes(
+                    data=audio_bytes,
+                    mime_type="audio/wav"
+                )
+            )
+
+        # รวมบริบทประวัติแชทเดิมเป็นข้อความเดียว ก่อนส่งเข้าโมเดล
+        full_context_string = "\n".join(
+            [f"{msg['role']}: {msg['text']}" for msg in current_chat_history[:-1]]
+        )
+
+        with st.spinner("🤖 กำลังคิดคำตอบ..."):
+            try:
+                client = genai.Client(api_key=api_key)
+                response = client.models.generate_content(
+                    model=active_model,
+                    contents=content_parts if content_parts else [full_context_string],
+                )
+                ai_text = response.text
+            except Exception as e:
+                ai_text = f"⚠️ เกิดข้อผิดพลาด: {e}"
+
+        # เพิ่มคำตอบ AI เข้าประวัติแชท
+        current_chat_history.append({"role": "assistant", "text": ai_text})
+
+        # บันทึกประวัติทั้งหมดลงดิสก์
+        save_all_chats_to_disk(st.session_state.all_chats)
+
+        live_scroll()
+        st.rerun()
