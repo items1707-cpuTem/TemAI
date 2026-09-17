@@ -168,7 +168,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history["text"]
+            first_msg = "💬 " + chat_history[0]["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -199,7 +199,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # ใช้โมเดลรุ่นเสถียรและเป็นทางการสูงสุดตามเงื่อนไขใหม่ของ Google
+    # ใช้โมเดลรุ่นเสถียรล่าสุดขีดความสามารถสูงอย่างถาวร
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -216,7 +216,7 @@ else:
 
     st.markdown("---")
 
-    # แผงควบคุมระบบคอลัมน์แนวนอนอัจฉริยะ: รวมช่องพิมพ์และช่องอัปโหลดไว้แถวเดียวกระชับแถวระนาบเดียวกันสวยงาม
+    # แผงควบคุมระบบคอลัมน์แนวนอน: รวมช่องพิมพ์และช่องอัปโหลดไว้แถวเดียวกระชับแถวระนาบเดียวกันสวยงาม
     col_input, col_img, col_aud, col_btn = st.columns([6, 1.2, 1.2, 1])
 
     with col_input:
@@ -263,6 +263,6 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # 🛠️ 🔴 รันระบบสตรีมมิ่งสดผ่านรูปแบบเส้นตรง (Direct Payload Stream) ปลอดภัยไร้ try ครอบซ้อนพัง 100%
-        response_stream = client.models.generate_content_stream(
-            model=active_model,
+        # 🛠️ 🔴 แก้ไขไวยากรณ์ปิดวงเล็บ ) ให้ถูกต้องตรงบรรทัดแบบเส้นตรงเรียบง่าย 100% ผ่านฉลุยชัวร์ครับ
+        response_stream = client.models.generate_content_stream(model=active_model, contents=contents_payload)
+        
