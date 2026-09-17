@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน พิมพ์ยาวแค่ไหนก็อ่านง่าย
+# 🎨 CSS ขั้นสูง: บังคับยุบรวมระบบอัปโหลดให้เหลือแค่ไอคอนกลมมินิมอล ฝังขวามือด้านในกล่องพิมพ์แชทเป็นกล่องเดียวกัน 100%
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ดีไซน์กล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
+    /* 🔴 ขยายช่องแชทหลัก และเว้นระยะด้านขวาคงที่เพื่อให้มีพื้นที่พอสำหรับไอคอนมินิมอลในกล่องเดียวกัน */
     .stChatInput textarea {
         font-size: 16px !important;  
         color: #000000 !important;
@@ -37,20 +37,11 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
+        padding-right: 95px !important; /* เว้นพื้นที่ด้านขวาอย่างปลอดภัยไม่ให้ตัวหนังสือทับไอคอน */
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
         color: #000000 !important;
-    }
-    
-    .stButton>button {
-        background-color: #10a37f !important; 
-        color: white !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 10px 24px !important;
-        font-weight: bold;
-        font-family: 'Sarabun', sans-serif !important;
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
@@ -77,13 +68,67 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่เป็นสัดส่วนเหนือกล่องแชทหลัก */
-    .media-panel-box {
+    /* 🔴 ดึงพิกเซลแผงไอคอนลอยให้เข้าไปฝังตัวอยู่มุมขวาด้านในของช่องพิมพ์แชทมาตรฐานอย่างถาวรและสมบูรณ์ */
+    .floating-media-box {
+        position: fixed;
+        bottom: 53px;
+        right: 4.8rem;
+        z-index: 999;
+        background: transparent;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+    
+    /* 🔴 บังคับลบกล่องคำอธิบาย แถบสถานะ และข้อความรกรุงรังดั้งเดิมออกทั้งหมดให้เหลือแค่ปุ่มกลมเล็กมินิมอลพอดีสวยงาม */
+    div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
+        width: 32px !important;
+        min-width: 32px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+    /* ปรับกระดุมไอคอนให้เล็ก มินิมอล เรียบหรู พอดีขอบกล่องแชท */
+    div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
+        font-size: 14px !important;
+        padding: 0 !important;
+        background-color: #f0f4f9 !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 50% !important;
+        width: 30px !important;
+        height: 30px !important;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* สั่งซ่อนส่วนขยายของระบบเก่าที่ทำให้หน้าจอรก */
+    div[data-testid="stFileUploaderDropzone"], div[data-testid="stAudioInputRecordState"] {
+        display: none !important;
+    }
+    div[data-testid="stFileUploaderFileWidget"] {
+        position: fixed;
+        bottom: 100px;
+        right: 4.8rem;
+        background: #ffffff;
+        padding: 6px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    /* ตกแต่งแถบแจ้งพรีวิวขนาดกะทัดรัด */
+    .preview-tag {
         background-color: #f9fafb;
-        padding: 10px 15px;
-        border-radius: 12px;
+        padding: 6px 12px;
+        border-radius: 8px;
         border: 1px solid #e5e7eb;
-        margin-bottom: 15px;
+        font-size: 13px;
+        margin-top: 8px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -188,17 +233,17 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ เจาะลึกความรู้ ส่งไฟล์ภาพ หรือกดอัดเสียงพูดสดส่งหา AI ได้ทันที")
+st.markdown("ถามข้อมูล ค้นหาความรู้ แนบไฟล์ภาพ หรือกดอัดเสียงพูดโต้ตอบทุกภาษาได้ในกล่องเดียว")
 st.markdown("---")
 
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # เรียกโมเดลรุ่นที่เป็นทางการล่าสุดของกูเกิล การันตีตอบกลับ 100%
-    active_model = "gemini-2.5-flash"
+    # 🛠️ เรียกโมเดลรุ่นที่เป็นทางการล่าสุด การันตีโต้ตอบมัลติมีเดียลื่นไหลสูงสุด
+    active_model = "gemini-2.5-flash" [1]
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
-    # กระดานแสดงผลหน้าจอแชทกลางเว็บ
+    # กระดานแสดงผลหน้าจอแชท
     chat_container = st.container()
     with chat_container:
         if current_chat_history:
@@ -207,55 +252,14 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ถาม หรือแนบไฟล์ด้านล่างสุดเพื่อเริ่มคุยได้เลยครับ 👇")
+            st.write("พิมพ์ถาม หรือกดไอคอนขวามือด้านล่างเพื่อแนบไฟล์ภาพ/อัดเสียงพูดคุยได้เลยครับ 👇")
 
-    st.markdown("<div style='padding-top: 30px;'></div>", unsafe_allow_html=True)
+    # แสดงแถบแจ้งพรีวิวขนาดเล็กเหนือกล่องแชทหากตรวจพบว่าผู้ใช้เลือกแนบรูปภาพหรือกดอัดเสียงสำเร็จ
+    if "temp_image" in st.session_state or "temp_voice" in st.session_state:
+        st.markdown('<div class="preview-tag"><b>📎 ตรวจพบไฟล์แนบพร้อมส่ง:</b>', unsafe_allow_html=True)
+        if "temp_image" in st.session_state and st.session_state.temp_image:
+            st.write("🖼️ แนบไฟล์รูปภาพสำเร็จ")
+        if "temp_voice" in st.session_state and st.session_state.temp_voice:
+            st.write("🎙️ บันทึกสัญญาณเสียงพูดสดสำเร็จ")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # แผงรวมช่องแนบไฟล์ภาพและปุ่มอัดเสียงพูดสดสไตล์โมเดิร์น จัดวางเป็นระเบียบเหนือกล่องแชทหลัก ปลอดภัยไม่บังพื้นที่การพิมพ์
-    st.markdown('<div class="media-panel-box"><b>📎 แผงฟังก์ชันแนบไฟล์ภาพ และ อัดเสียงพูดสด:</b>', unsafe_allow_html=True)
-    col_img, col_voice = st.columns(2)
-    
-    with col_img:
-        uploaded_image = st.file_uploader("🖼️ กดตรงนี้เพื่อแนบไฟล์รูปภาพของคุณ:", type=["jpg", "jpeg", "png"], key="img_selector")
-        if uploaded_image:
-            st.image(uploaded_image, width=100, caption="รูปภาพพร้อมส่ง")
-            
-    with col_voice:
-        voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงด้านขวาเพื่ออัดเสียงพูดสดของคุณทันที:")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # กล่องรับคำถามหลักอัจฉริยะ st.chat_input ที่เปิดกว้าง พิมพ์ถามได้สะดวกสบาย 100% และกด Enter บนคีย์บอร์ดส่งได้ทันที!
-    user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
-    
-    # เงื่อนไขส่งข้อมูลหา Google API: ทำงานเมื่อผู้ใช้กด Enter หรือมีการกดอัดเสียงสดเข้ามาสำเร็จ
-    if user_prompt or voice_recorder_data:
-        if voice_recorder_data and not user_prompt:
-            user_prompt = "[ส่งคำสั่งด้วยระบบเสียงพูดสดของคุณ]"
-            
-        with chat_container:
-            st.markdown(f"<div class='user-bubble'><b>👤 คุณ:</b><br>{user_prompt}</div>", unsafe_allow_html=True)
-        live_scroll()
-        
-        with chat_container:
-            response_placeholder = st.empty()
-            
-        client = genai.Client(api_key=api_key)
-        full_response_text = ""
-        contents_payload = []
-        
-        if uploaded_image:
-            img_obj = Image.open(uploaded_image)
-            contents_payload.append(img_obj)
-            
-        if voice_recorder_data:
-            with st.spinner("⏳ AI กำลังสแกนสัญญาณเสียงพูดสดของคุณ..."):
-                recorded_file_obj = client.files.upload(file=voice_recorder_data)
-                contents_payload.append(recorded_file_obj)
-                
-        full_context_string = ""
-        for msg in current_chat_history:
-            full_context_string += f"{msg['role']}: {msg['text']}\n"
-        full_context_string += f"user: {user_prompt}"
-        
-        contents_payload.append(full_context_string)
-        
