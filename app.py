@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: จัดการพื้นที่กล่องพิมพ์แชทหลัก และซ่อนปุ่มดั้งเดิมเพื่อขยับไอคอนไปไว้ขวามือในช่องพิมพ์อย่างสวยงาม
+# 🎨 CSS: จัดโครงสร้างใหม่ทั้งหมด ไอคอนและกล่องพิมพ์เป็นเนื้อเดียวกัน 100% สระไทยไม่ทับกัน
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ขยายความสูงและระยะบรรทัดของกล่องพิมพ์แชทหลัก เพื่อให้สระไม่ทับกัน */
+    /* ปรับแต่งกล่องพิมพ์ข้อความหลักให้สูงโปร่ง สระและวรรณยุกต์ไทยแยกชั้นสวยงาม อ่านง่าย */
     .stChatInput textarea {
         font-size: 18px !important;  
         color: #000000 !important;
@@ -37,7 +37,7 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 12px !important;
         padding-bottom: 12px !important;
-        padding-right: 120px !important; /* เว้นพื้นที่ด้านขวาในกล่องไว้ใส่ไอคอน */
+        padding-right: 130px !important; /* เว้นพื้นที่ด้านขวาในกล่องอย่างคงที่ */
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -79,21 +79,21 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* สไตล์บาร์แผงไอคอนลอยที่จัดให้อยู่ตำแหน่งมุมขวาบนของกล่อง chat_input */
+    /* 🔴 ปรับแต่งตำแหน่งแผงไอคอนลอยให้ฝังอยู่มุมขวาด้านในของช่องพิมพ์แชทอย่างถาวร */
     .floating-media-box {
         position: fixed;
-        bottom: 82px;
+        bottom: 58px;
         right: 4.5rem;
         z-index: 1000;
         background: transparent;
         display: flex;
-        gap: 5px;
+        gap: 8px;
     }
     
-    /* สไตล์ปรับแต่งกล่องอัปโหลดของ Streamlit ให้เหลือแค่ปุ่มไอคอนสไตล์ ChatGPT */
+    /* ซ่อนปุ่มและตัวหนังสือรกรุงรังของ Streamlit ให้เหลือแค่ปุ่มวงกลมมินิมอล */
     div[data-testid="stFileUploader"] {
-        width: 45px !important;
-        min-width: 45px !important;
+        width: 42px !important;
+        min-width: 42px !important;
         padding: 0 !important;
         margin: 0 !important;
     }
@@ -104,25 +104,25 @@ st.markdown("""
     }
     div[data-testid="stFileUploader"] button {
         font-size: 20px !important;
-        padding: 5px !important;
+        padding: 4px !important;
         background-color: #f0f4f9 !important;
-        border: 1px solid #e5e5e5 !important;
+        border: 1px solid #d1d5db !important;
         border-radius: 50% !important;
-        width: 40px !important;
-        height: 40px !important;
+        width: 38px !important;
+        height: 38px !important;
+        cursor: pointer;
     }
-    /* ซ่อนข้อความแนะนำไฟล์รกรุงรังให้เหลือแต่ไอคอนสะอาดตา */
     div[data-testid="stFileUploaderDropzone"] {
         display: none !important;
     }
     div[data-testid="stFileUploaderFileWidget"] {
         position: fixed;
-        bottom: 135px;
+        bottom: 110px;
         right: 4.5rem;
         background: #ffffff;
-        padding: 8px;
+        padding: 10px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         z-index: 1001;
     }
     </style>
@@ -177,7 +177,7 @@ if "all_chats" not in st.session_state:
 # สร้าง ID เซสชันแชทปัจจุบัน
 if "current_session_id" not in st.session_state:
     if st.session_state.all_chats:
-        st.session_state.current_session_id = list(st.session_state.all_chats.keys())
+        st.session_state.current_session_id = list(st.session_state.all_chats.keys())[0]
     else:
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
 
@@ -202,8 +202,8 @@ with st.sidebar:
     st.markdown("📂 **ห้องสนทนาเก่าของคุณ:**")
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
-        if chat_history:
-            first_msg = "💬 " + chat_history["text"]
+        if chat_history and len(chat_history) > 0:
+            first_msg = "💬 " + chat_history[0]["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -228,7 +228,7 @@ with st.sidebar:
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
 st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("คุยถามตอบ หรือคลิกส่งรูปภาพและไฟล์เสียงประมวลผลได้ในกล่องเดียว")
+st.markdown("คุยถามตอบ หรือส่งรูปภาพและไฟล์เสียงประมวลผลได้ในกล่องเดียว")
 st.markdown("---")
 
 if not api_key:
@@ -248,7 +248,7 @@ else:
         else:
             st.write("พิมพ์ข้อความคำถาม หรือคลิกไอคอนขวามือด้านล่างเพื่อแนบรูปภาพ/เสียงเริ่มคุยได้เลยครับ 👇")
 
-    # 🔴 จุดเด่นใหม่: แผงลอยฝังไอคอนอัปโหลดรูปภาพ 🖼️ และเสียง 🎵 ไว้ทางมุมขวาในกรอบของช่องแชทเดียวกัน
+    # แผงลอยฝังไอคอนอัปโหลดรูปภาพ 🖼️ และเสียง 🎵 ไว้ทางมุมขวาในกรอบของช่องแชทเดียวกัน
     st.markdown('<div class="floating-media-box">', unsafe_allow_html=True)
     uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
     uploaded_audio = st.file_uploader("🎵", type=["mp3", "wav"], key="aud_box", label_visibility="collapsed")
@@ -270,8 +270,9 @@ else:
         
         contents_payload = []
         
-        # แนบไฟล์ภาพเข้า Payload หากมีการกดไอคอน
+        # แนบไฟล์ภาพเข้า Payload หากมีการเลือกอัปโหลด
         if uploaded_image:
             img_obj = Image.open(uploaded_image)
             contents_payload.append(img_obj)
             
+        # แนบไฟล์เสียงเข้า Payload หากมีการเลือกอัปโหลด
