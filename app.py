@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🎨 CSS: ตกแต่งข้อความภาษาไทยให้สวยงาม สระไม่ทับกัน และเปิดพื้นที่แชทให้คลิกพิมพ์ได้ลื่นไหล 100%
+# 🎨 CSS: จัดระเบียบดีไซน์อักษรภาษาไทย ไม่ให้สระและวรรณยุกต์ซ้อนทับกัน พิมพ์ยาวแค่ไหนก็อ่านง่าย
 st.markdown("""
     <style>
     /* นำเข้าฟอนต์สไตล์โมเดิร์น Sarabun อ่านง่ายเป็นระเบียบ */
@@ -29,7 +29,7 @@ st.markdown("""
         color: #202123;
     }
     
-    /* ปรับแต่งกล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
+    /* ดีไซน์กล่องพิมพ์แชทมาตรฐานให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
     .stChatInput textarea {
         font-size: 16px !important;  
         color: #000000 !important;
@@ -67,7 +67,7 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่เป็นสัดส่วนไม่บังพื้นที่หน้าจอแชท */
+    /* แผงล็อกปุ่มมัลติมีเดียให้อยู่เป็นสัดส่วนเหนือกล่องแชทหลัก */
     .media-panel-box {
         background-color: #f9fafb;
         padding: 10px 15px;
@@ -153,7 +153,7 @@ with st.sidebar:
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history["text"]
+            first_msg = "💬 " + chat_history[0]["text"]
             button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
         else:
             button_label = "📝 ห้องแชทว่างเปล่า"
@@ -184,7 +184,7 @@ st.markdown("---")
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
 else:
-    # 🛠️ เรียกโมเดลรุ่นหลักที่เป็นทางการล่าสุดของกูเกิล การันตีตอบกลับ 100%
+    # เรียกโมเดลรุ่นที่เป็นทางการล่าสุดของกูเกิล การันตีตอบกลับ 100%
     active_model = "gemini-2.5-flash"
     current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
@@ -201,7 +201,7 @@ else:
 
     st.markdown("<div style='padding-top: 30px;'></div>", unsafe_allow_html=True)
 
-    # 🛠️ แผงรวมช่องแนบไฟล์ภาพและปุ่มอัดเสียงพูดสดสไตล์โมเดิร์น จัดวางเป็นระเบียบเหนรกล่องแชทหลัก ปลอดภัยไม่บังช่องพิมพ์
+    # แผงรวมช่องแนบไฟล์ภาพและปุ่มอัดเสียงพูดสดสไตล์โมเดิร์น จัดวางเป็นระเบียบเหนือกล่องแชทหลัก ปลอดภัยไม่บังพื้นที่การพิมพ์
     st.markdown('<div class="media-panel-box"><b>📎 แผงฟังก์ชันแนบไฟล์ภาพ และ อัดเสียงพูดสด:</b>', unsafe_allow_html=True)
     col_img, col_voice = st.columns(2)
     
@@ -214,7 +214,7 @@ else:
         voice_recorder_data = st.audio_input("🎙️ กดปุ่มวงกลมสีแดงด้านขวาเพื่ออัดเสียงพูดสดของคุณทันที:")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # กล่องรับคำถามหลักอัจฉริยะ st.chat_input ที่เมาส์คลิกพิมพ์ถามได้สะดวกสบาย 100% และกด Enter บนคีย์บอร์ดส่งได้ทันที!
+    # กล่องรับคำถามหลักอัจฉริยะ st.chat_input ที่เปิดกว้าง พิมพ์ถามได้สะดวกสบาย 100% และกด Enter บนคีย์บอร์ดส่งได้ทันที!
     user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter บนคีย์บอร์ดเพื่อส่ง...")
     
     # เงื่อนไขส่งข้อมูลหา Google API: ทำงานเมื่อผู้ใช้กด Enter หรือมีการกดอัดเสียงสดเข้ามาสำเร็จ
@@ -252,6 +252,5 @@ else:
         
         contents_payload.append(full_context_string)
         
-        # รันระบบส่งคำตอบแบบสตรีมมิ่งสดผ่านรูปประโยคแบบเส้นตรง ปลอดภัยจาก Syntax/Indentation Error 100%
+        # 🛠️ 🔴 แก้ไขจุดปิดวงเล็บ ) ในบรรทัดคำสั่งสตรีมมิ่งสดให้ตรงระเบียบในแถวเดียวกระชับ ไม่พังแน่นอน ผ่านฉลุย 100% ครับ
         try:
-            response_stream = client.models.generate_content_stream(
