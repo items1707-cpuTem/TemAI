@@ -38,7 +38,7 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
-        padding-right: 84px !important;
+        padding-right: 76px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -98,10 +98,10 @@ st.markdown("""
         pointer-events: none !important;
     }
     div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(2) {
-        right: 46px !important;
+        right: 38px !important;
     }
     div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(3) {
-        right: 8px !important;
+        right: 4px !important;
     }
     div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
         width: 34px !important;
@@ -318,6 +318,64 @@ else:
 
     with col_voice:
         voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
+
+    # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
+    # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
+    st.markdown("""
+        <script>
+        (function() {
+            if (window.__micTimerInitialized) { return; }
+            window.__micTimerInitialized = true;
+
+            function getDoc() { return window.parent.document; }
+
+            var recordStartTime = null;
+            var originalPlaceholder = null;
+            var wasRecording = false;
+
+            function isRecording(doc) {
+                var el = doc.querySelector(
+                    'div[data-testid="stAudioInputWaveSurfer"], div[data-testid="stAudioInputRecordState"]'
+                );
+                if (!el) return false;
+                var rect = el.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            }
+
+            function tick() {
+                var doc = getDoc();
+                var textarea = doc.querySelector('div[data-testid="stChatInput"] textarea');
+                if (!textarea) return;
+
+                var recording = isRecording(doc);
+
+                if (recording && !wasRecording) {
+                    // เพิ่งเริ่มอัดเสียง: จำข้อความเดิมไว้ก่อน แล้วเริ่มจับเวลา
+                    recordStartTime = Date.now();
+                    if (originalPlaceholder === null) {
+                        originalPlaceholder = textarea.getAttribute('placeholder') || '';
+                    }
+                }
+
+                if (recording) {
+                    var elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
+                    var mm = Math.floor(elapsedSec / 60);
+                    var ss = String(elapsedSec % 60).padStart(2, '0');
+                    textarea.setAttribute('placeholder', '🎙️ กำลังอัดเสียง ' + mm + ':' + ss + ' ...');
+                } else if (wasRecording) {
+                    // อัดเสียงเสร็จ/ยกเลิก: คืนข้อความเดิมกลับไป
+                    if (originalPlaceholder !== null) {
+                        textarea.setAttribute('placeholder', originalPlaceholder);
+                    }
+                }
+
+                wasRecording = recording;
+            }
+
+            setInterval(tick, 400);
+        })();
+        </script>
+    """, unsafe_allow_html=True)
 
     # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
     if user_prompt or uploaded_image or voice_recorder_data:
