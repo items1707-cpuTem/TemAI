@@ -117,7 +117,7 @@ st.markdown("""
         min-height: 0 !important;
     }
 
-    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ เหลือแค่ไอคอนอิโมจิเดียว ไม่มีตัวหนังสือ/ไอคอนเดิมซ้อนทับ */
+    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ */
     div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
         position: relative !important;
         padding: 0 !important;
@@ -133,20 +133,21 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: none !important;
-        overflow: hidden !important;
     }
     div[data-testid="stFileUploader"] button:hover, div[data-testid="stAudioInput"] button:hover {
         background-color: #eaecef !important;
     }
-    /* ซ่อนทุกสิ่งที่อยู่ข้างในปุ่มเดิม (ตัวหนังสือ Upload/Browse files, ไอคอน SVG เดิม) ไม่ให้เหลือค้างเลย */
-    div[data-testid="stFileUploader"] button > *,
-    div[data-testid="stAudioInput"] button > * {
+
+    /* ปุ่มรูปภาพเท่านั้น: เดิมมีตัวหนังสือ "Browse files" ซ่อนอยู่ข้างใน ต้องซ่อนแล้วแปะอิโมจิรูปภาพแทน */
+    div[data-testid="stFileUploader"] button {
+        overflow: hidden !important;
+    }
+    div[data-testid="stFileUploader"] button > * {
         visibility: hidden !important;
         opacity: 0 !important;
     }
-    /* แปะไอคอนอิโมจิเดียวไว้กึ่งกลางปุ่มแทนที่ทั้งหมด รับประกันไม่ซ้อนกับอะไร */
-    div[data-testid="stFileUploader"] button::after,
-    div[data-testid="stAudioInput"] button::after {
+    div[data-testid="stFileUploader"] button::after {
+        content: "🖼️";
         visibility: visible !important;
         opacity: 1 !important;
         position: absolute !important;
@@ -156,18 +157,13 @@ st.markdown("""
         font-size: 18px !important;
         line-height: 1 !important;
     }
-    div[data-testid="stFileUploader"] button::after {
-        content: "🖼️";
-    }
-    div[data-testid="stAudioInput"] button::after {
-        content: "🎙️";
-    }
 
-    /* บังคับซ่อนข้อความ/คำอธิบาย/ป้ายแนะนำที่รกรุงรังทั้งหมดออกให้เกลี้ยง 100% */
+    /* ปุ่มไมค์: ใช้ไอคอนไมค์เดิมของ Streamlit ตามธรรมชาติ (ไม่มีตัวหนังสือซ้อนอยู่แล้ว)
+       ไม่แตะต้อง/ไม่ซ่อนอะไรข้างในปุ่ม เพื่อให้กดอัดเสียง/หยุดอัดใช้งานได้ปกติ 100% */
+
+    /* บังคับซ่อนเฉพาะข้อความคำแนะนำ/ป้ายกำกับของ "ปุ่มรูปภาพ" ที่รกรุงรัง (ไม่ยุ่งกับสถานะการอัดเสียง) */
     div[data-testid="stFileUploaderDropzone"] small,
     div[data-testid="stFileUploaderDropzoneInstructions"],
-    div[data-testid="stAudioInputRecordState"],
-    div[data-testid="stAudioInputWaveSurfer"],
     div[data-testid="stFileUploader"] label,
     div[data-testid="stAudioInput"] label,
     div[data-testid="stFileUploaderDropzone"] svg {
