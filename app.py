@@ -242,14 +242,7 @@ if st.session_state.current_session_id not in st.session_state.all_chats:
 
 # 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT
 with st.sidebar:
-    st.markdown("### ⚙️ แผงควบคุมระบบ")
-    if api_key:
-        st.success("✅ **สถานะคีย์:** เชื่อมต่ออัตโนมัติ")
-    else:
-        st.error("❌ **สถานะคีย์:** ยังไม่ได้ใส่คีย์หลังบ้าน")
-        
-    st.markdown("---")
-    if st.button("➕ เริ่มต้นแชทใหม่ (New Chat)", key="new_chat_btn"):
+    if st.button("➕ เริ่มใหม่", key="new_chat_btn"):
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
         st.session_state.all_chats[st.session_state.current_session_id] = []
         st.rerun()
@@ -283,7 +276,7 @@ with st.sidebar:
         st.rerun()
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
-st.markdown("# 🧠 ฉันคือผู้ช่วยของคุณ")
+st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
 st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ หรือแนบไฟล์รูปภาพ/อัดเสียงพูดโต้ตอบได้ทุกภาษาในแถบขอบล่างจุดเดียว")
 st.markdown("---")
 
