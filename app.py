@@ -296,13 +296,13 @@ else:
                 """
                 <div style="
                     display: flex;
-                    align-items: center;
+                    align-items: flex-end;
                     justify-content: center;
                     text-align: center;
-                    min-height: 55vh;
+                    min-height: 38vh;
                 ">
                     <div>
-                        <div style="font-size: 32px; font-weight: 600; color: #202123;">
+                        <div style="font-size: 32px; font-weight: 600; color: #202123; margin-bottom: 0;">
                             สวัสดีครับ คุณมีอะไรให้ผมช่วยไหม
                         </div>
                     </div>
@@ -311,7 +311,10 @@ else:
                 unsafe_allow_html=True
             )
 
-    st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
+    # ระยะห่างระหว่างข้อความทักทาย/ประวัติแชท กับกล่องพิมพ์ข้อความ
+    # ให้แคบลงเมื่อยังไม่มีการสนทนา เพื่อให้ "สวัสดีครับ" กับกล่องพิมพ์ดูใกล้ชิดเป็นกลุ่มเดียวกัน
+    gap_size = "14px" if not current_chat_history else "20px"
+    st.markdown(f"<div style='padding-top: {gap_size};'></div>", unsafe_allow_html=True)
 
     # 🔴 ไอคอนรูปภาพและไมค์ลอยซ้อนอยู่ข้างในกล่องพิมพ์ข้อความเดียวกัน (ควบคุมตำแหน่งด้วย CSS ด้านบน)
     col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
