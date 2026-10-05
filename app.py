@@ -276,9 +276,6 @@ with st.sidebar:
         st.rerun()
 
 # 3. พื้นที่แสดงเนื้อหาหลัก
-st.markdown("# 🧠 สมองกล AI ส่วนตัวของคุณ")
-st.markdown("ค้นหาข้อมูล เจาะลึกความรู้ หรือแนบไฟล์รูปภาพ/อัดเสียงพูดโต้ตอบได้ทุกภาษาในแถบขอบล่างจุดเดียว")
-st.markdown("---")
 
 if not api_key:
     st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
@@ -295,7 +292,24 @@ else:
                 bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
                 st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
         else:
-            st.write("พิมพ์ถามข้อมูล หรือคลิกปุ่มไอคอนด้านล่างเพื่อเริ่มต้นคุยได้เลยครับ 👇")
+            st.markdown(
+                """
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    min-height: 55vh;
+                ">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 600; color: #202123;">
+                            สวัสดีครับ คุณมีอะไรให้ผมช่วยไหม
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     st.markdown("<div style='padding-top: 20px;'></div>", unsafe_allow_html=True)
 
