@@ -30,7 +30,7 @@ st.markdown("""
     }
     
     /* ปรับแต่งกล่องพิมพ์แชทหลักให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
-    /* เผื่อพื้นที่ขวาไว้ให้ไอคอนรูปภาพ + ไมค์ ลอยซ้อนอยู่ข้างในกล่องพอดี ไม่ทับตัวหนังสือ */
+    /* เผื่อพื้นที่ซ้ายไว้ให้ปุ่ม "+" แนบไฟล์ ลอยซ้อนอยู่ข้างในกล่องพอดี ไม่ทับตัวหนังสือ */
     div[data-testid="stChatInput"] textarea {
         font-size: 16px !important;  
         color: #000000 !important;
@@ -38,7 +38,7 @@ st.markdown("""
         font-family: 'Sarabun', sans-serif !important;
         padding-top: 10px !important;
         padding-bottom: 10px !important;
-        padding-right: 76px !important;
+        padding-left: 44px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -70,58 +70,36 @@ st.markdown("""
     }
     
     /* ==========================================================
-       ฝังไอคอนรูปภาพ + ไมค์ ไว้ "ข้างใน" กล่องพิมพ์ข้อความจริง ๆ
-       โดยวางซ้อน (overlay) ทับขอบขวาของ st.chat_input ด้วย position
+       ปุ่ม "+" แนบไฟล์ ลอยอยู่ "ข้างใน" ขอบซ้ายสุดของกล่องพิมพ์ข้อความ
+       กดแล้วเด้งเมนูเล็ก ๆ ให้เลือก แนบไฟล์ / แนบรูปภาพ / อัดเสียง
        ========================================================== */
 
-    /* แถวที่รวม chat_input + ปุ่มรูปภาพ + ปุ่มไมค์ ต้องเป็นจุดอ้างอิงตำแหน่ง
+    /* แถวที่รวม ปุ่ม + และ chat_input ต้องเป็นจุดอ้างอิงตำแหน่ง
        ใช้เครื่องหมายกำกับ (.chat-input-row-marker) ระบุแถวให้เจาะจง เพื่อไม่ให้ไปชนกับ
        คอลัมน์แถบประวัติด้านนอกที่ครอบกล่องแชทไว้อีกชั้นหนึ่ง */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) {
         position: relative !important;
         align-items: center !important;
     }
+    /* คอลัมน์ปุ่ม + (คอลัมน์ที่ 1) ลอยซ้อนทับอยู่ในขอบซ้ายของกล่องแชท */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
-        width: 100% !important;
-        flex: 1 1 auto !important;
-    }
-
-    /* คอลัมน์ไอคอนรูปภาพ (คอลัมน์ที่ 2) และไอคอนไมค์ (คอลัมน์ที่ 3)
-       ยกไปลอยซ้อนทับอยู่ในขอบขวาของกล่องแชทเดียวกัน ไม่กินพื้นที่แถวแยกอีกต่อไป */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2),
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(3) {
         position: absolute !important;
+        left: 6px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         width: auto !important;
         min-width: 0 !important;
         flex: none !important;
         z-index: 999 !important;
-        pointer-events: none !important;
     }
+    /* คอลัมน์กล่องพิมพ์ข้อความ (คอลัมน์ที่ 2) กินพื้นที่เต็มแถว */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2) {
-        right: 38px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(3) {
-        right: 4px !important;
-    }
-    div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
-        width: 34px !important;
-        min-width: 34px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        pointer-events: auto !important;
-    }
-    div[data-testid="stFileUploader"] section, div[data-testid="stAudioInput"] section {
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        min-height: 0 !important;
+        width: 100% !important;
+        flex: 1 1 auto !important;
     }
 
-    /* ปุ่มไอคอนทั้งสอง: วงกลมโปร่งใส ไม่มีกรอบ */
-    div[data-testid="stFileUploader"] button, div[data-testid="stAudioInput"] button {
-        position: relative !important;
+    /* ปุ่ม "+" วงกลมโปร่งใส ไม่มีกรอบ */
+    div[data-testid="stPopover"] > div > button {
         padding: 0 !important;
         margin: 0 !important;
         background-color: transparent !important;
@@ -135,41 +113,38 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         box-shadow: none !important;
+        font-size: 20px !important;
+        font-weight: 600 !important;
+        color: #3c3f44 !important;
     }
-    div[data-testid="stFileUploader"] button:hover, div[data-testid="stAudioInput"] button:hover {
+    div[data-testid="stPopover"] > div > button:hover {
         background-color: #eaecef !important;
     }
-
-    /* ปุ่มรูปภาพเท่านั้น: เดิมมีตัวหนังสือ "Browse files" ซ่อนอยู่ข้างใน ต้องซ่อนแล้วแปะอิโมจิรูปภาพแทน */
-    div[data-testid="stFileUploader"] button {
-        overflow: hidden !important;
-    }
-    div[data-testid="stFileUploader"] button > * {
-        visibility: hidden !important;
-        opacity: 0 !important;
-    }
-    div[data-testid="stFileUploader"] button::after {
-        content: "🖼️";
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        font-size: 18px !important;
-        line-height: 1 !important;
-    }
-
-    /* ปุ่มไมค์: ใช้ไอคอนไมค์เดิมของ Streamlit ตามธรรมชาติ (ไม่มีตัวหนังสือซ้อนอยู่แล้ว)
-       ไม่แตะต้อง/ไม่ซ่อนอะไรข้างในปุ่ม เพื่อให้กดอัดเสียง/หยุดอัดใช้งานได้ปกติ 100% */
-
-    /* บังคับซ่อนเฉพาะข้อความคำแนะนำ/ป้ายกำกับของ "ปุ่มรูปภาพ" ที่รกรุงรัง (ไม่ยุ่งกับสถานะการอัดเสียง) */
-    div[data-testid="stFileUploaderDropzone"] small,
-    div[data-testid="stFileUploaderDropzoneInstructions"],
-    div[data-testid="stFileUploader"] label,
-    div[data-testid="stAudioInput"] label,
-    div[data-testid="stFileUploaderDropzone"] svg {
+    /* ซ่อนลูกศรเล็ก ๆ ที่ Streamlit แปะมากับปุ่มเปิดเมนูโดยอัตโนมัติ */
+    div[data-testid="stPopover"] > div > button svg {
         display: none !important;
+    }
+
+    /* แผงเมนูที่เด้งขึ้นมาหลังกดปุ่ม +: แนบไฟล์ / แนบรูปภาพ / อัดเสียง */
+    div[data-testid="stPopoverBody"] {
+        padding: 14px !important;
+        min-width: 260px !important;
+    }
+    div[data-testid="stPopoverBody"] [data-testid="stFileUploaderDropzoneInstructions"] small,
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzoneInstructions"] svg {
+        display: none !important;
+    }
+    div[data-testid="stPopoverBody"] section {
+        padding: 6px !important;
+    }
+    .attach-menu-label {
+        font-size: 13px !important;
+        font-weight: 600;
+        color: #6b7280;
+        margin: 10px 0 4px 2px;
+    }
+    .attach-menu-label:first-child {
+        margin-top: 0;
     }
     /* ==========================================================
        แถบซ้าย: ปุ่มเริ่มใหม่ + ประวัติการค้นหา
@@ -210,18 +185,6 @@ st.markdown("""
         margin: 2px 0 8px 4px;
     }
 
-    /* กล่องแสดงชื่อไฟล์ที่อัปโหลดแล้ว ให้ลอยเป็นการ์ดเล็ก ๆ เหนือกล่องแชท ไม่บังปุ่มไอคอน */
-    div[data-testid="stFileUploaderFileWidget"] {
-        position: fixed;
-        bottom: 88px;
-        right: 4.8rem;
-        background: #ffffff;
-        padding: 6px 10px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
-        max-width: 220px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -361,20 +324,31 @@ with col_main:
         gap_size = "14px" if not current_chat_history else "20px"
         st.markdown(f"<div style='padding-top: {gap_size};'></div>", unsafe_allow_html=True)
 
-        # 🔴 ไอคอนรูปภาพและไมค์ลอยซ้อนอยู่ข้างในกล่องพิมพ์ข้อความเดียวกัน (ควบคุมตำแหน่งด้วย CSS ด้านบน)
-        col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
+        # 🔴 ปุ่ม "+" ลอยซ้อนอยู่ข้างในขอบซ้ายสุดของกล่องพิมพ์ข้อความ กดแล้วเด้งเมนูแนบไฟล์ทั้งหมด
+        col_plus, col_input = st.columns([0.6, 6.1])
+
+        with col_plus:
+            with st.popover("➕", use_container_width=False):
+                st.markdown('<div class="attach-menu-label">📎 แนบไฟล์</div>', unsafe_allow_html=True)
+                uploaded_file = st.file_uploader(
+                    "แนบไฟล์", key="file_box", label_visibility="collapsed"
+                )
+
+                st.markdown('<div class="attach-menu-label">🖼️ แนบรูปภาพ</div>', unsafe_allow_html=True)
+                uploaded_image = st.file_uploader(
+                    "แนบรูปภาพ", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed"
+                )
+
+                st.markdown('<div class="attach-menu-label">🎙️ อัดเสียง</div>', unsafe_allow_html=True)
+                voice_recorder_data = st.audio_input(
+                    "อัดเสียง", key="voice_box", label_visibility="collapsed"
+                )
 
         with col_input:
             # เครื่องหมายกำกับแถวนี้ไว้ ให้ CSS ด้านบนจำแถวได้แม่นยำ ไม่ไปชนกับคอลัมน์แถบประวัติด้านนอก
             st.markdown('<div class="chat-input-row-marker"></div>', unsafe_allow_html=True)
             # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
             user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
-
-        with col_img:
-            uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-
-        with col_voice:
-            voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
 
         # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
         # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
@@ -435,10 +409,17 @@ with col_main:
         """, unsafe_allow_html=True)
 
         # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
-        if user_prompt or uploaded_image or voice_recorder_data:
+        if user_prompt or uploaded_image or voice_recorder_data or uploaded_file:
 
             # เตรียมข้อความที่จะแสดงในกล่องฝั่งผู้ใช้
-            display_text = user_prompt if user_prompt else "📎 ส่งไฟล์แนบ"
+            if user_prompt:
+                display_text = user_prompt
+            elif uploaded_image is not None:
+                display_text = f"📎 ส่งรูปภาพ: {uploaded_image.name}"
+            elif uploaded_file is not None:
+                display_text = f"📎 ส่งไฟล์แนบ: {uploaded_file.name}"
+            else:
+                display_text = "📎 ส่งข้อความเสียง"
 
             # เพิ่มข้อความผู้ใช้เข้าประวัติแชท
             current_chat_history.append({"role": "user", "text": display_text})
@@ -452,6 +433,16 @@ with col_main:
             if uploaded_image is not None:
                 image = Image.open(uploaded_image)
                 content_parts.append(image)
+
+            if uploaded_file is not None:
+                file_bytes = uploaded_file.read()
+                file_mime = uploaded_file.type or "application/octet-stream"
+                content_parts.append(
+                    types.Part.from_bytes(
+                        data=file_bytes,
+                        mime_type=file_mime
+                    )
+                )
 
             if voice_recorder_data is not None:
                 audio_bytes = voice_recorder_data.read()
