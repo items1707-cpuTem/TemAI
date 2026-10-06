@@ -74,20 +74,22 @@ st.markdown("""
        โดยวางซ้อน (overlay) ทับขอบขวาของ st.chat_input ด้วย position
        ========================================================== */
 
-    /* แถวที่รวม chat_input + ปุ่มรูปภาพ + ปุ่มไมค์ ต้องเป็นจุดอ้างอิงตำแหน่ง */
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) {
+    /* แถวที่รวม chat_input + ปุ่มรูปภาพ + ปุ่มไมค์ ต้องเป็นจุดอ้างอิงตำแหน่ง
+       ใช้เครื่องหมายกำกับ (.chat-input-row-marker) ระบุแถวให้เจาะจง เพื่อไม่ให้ไปชนกับ
+       คอลัมน์แถบประวัติด้านนอกที่ครอบกล่องแชทไว้อีกชั้นหนึ่ง */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) {
         position: relative !important;
         align-items: center !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(1) {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
         width: 100% !important;
         flex: 1 1 auto !important;
     }
 
     /* คอลัมน์ไอคอนรูปภาพ (คอลัมน์ที่ 2) และไอคอนไมค์ (คอลัมน์ที่ 3)
        ยกไปลอยซ้อนทับอยู่ในขอบขวาของกล่องแชทเดียวกัน ไม่กินพื้นที่แถวแยกอีกต่อไป */
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(2),
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(3) {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2),
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(3) {
         position: absolute !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
@@ -97,10 +99,10 @@ st.markdown("""
         z-index: 999 !important;
         pointer-events: none !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(2) {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2) {
         right: 38px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stChatInput"]) > div[data-testid="stColumn"]:nth-of-type(3) {
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(3) {
         right: 4px !important;
     }
     div[data-testid="stFileUploader"], div[data-testid="stAudioInput"] {
@@ -179,9 +181,9 @@ st.markdown("""
         box-shadow: none !important;
         text-align: left !important;
         justify-content: flex-start !important;
-        padding: 4px 6px !important;
+        padding: 5px 6px !important;
         margin: 0 !important;
-        font-size: 13px !important;
+        font-size: 15px !important;
         font-weight: 400 !important;
         min-height: 0 !important;
         height: auto !important;
@@ -189,7 +191,7 @@ st.markdown("""
         color: #3c3f44 !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) button p {
-        font-size: 13px !important;
+        font-size: 15px !important;
         text-align: left !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) button:hover {
@@ -198,7 +200,7 @@ st.markdown("""
     }
     /* ให้ปุ่มแต่ละรายการอยู่ติดกันหน่อย ไม่เว้นช่องว่างห่างแบบเดิม */
     div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) div[data-testid="stVerticalBlock"] {
-        gap: 0.15rem !important;
+        gap: 0.2rem !important;
     }
     .history-header {
         font-size: 12px !important;
@@ -363,6 +365,8 @@ with col_main:
         col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
 
         with col_input:
+            # เครื่องหมายกำกับแถวนี้ไว้ ให้ CSS ด้านบนจำแถวได้แม่นยำ ไม่ไปชนกับคอลัมน์แถบประวัติด้านนอก
+            st.markdown('<div class="chat-input-row-marker"></div>', unsafe_allow_html=True)
             # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
             user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
 
