@@ -169,6 +169,15 @@ st.markdown("""
     div[data-testid="stFileUploaderDropzone"] svg {
         display: none !important;
     }
+    /* ปุ่มรายการห้องสนทนาในแถบซ้าย: ให้ข้อความ (ประโยคที่เคยถาม) ชิดซ้ายสุด แทนที่จะอยู่กึ่งกลางปุ่ม */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+    [data-testid="stSidebar"] button[kind="secondary"] p {
+        text-align: left !important;
+    }
+
     /* กล่องแสดงชื่อไฟล์ที่อัปโหลดแล้ว ให้ลอยเป็นการ์ดเล็ก ๆ เหนือกล่องแชท ไม่บังปุ่มไอคอน */
     div[data-testid="stFileUploaderFileWidget"] {
         position: fixed;
@@ -248,18 +257,17 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.markdown("📂 **ห้องสนทนาเก่าของคุณ:**")
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
-        if chat_history and len(chat_history) > 0:
-            first_msg = "💬 " + chat_history[0]["text"] if isinstance(chat_history, list) and chat_history else "💬 การสนทนา"
-            button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
-        else:
-            button_label = "📝 ห้องแชทว่างเปล่า"
-            
+        if not chat_history or len(chat_history) == 0:
+            continue  # ห้องแชทว่างเปล่า ไม่ต้องแสดงในรายการ
+
+        first_msg = chat_history[0]["text"]
+        button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
+
         if session_id == st.session_state.current_session_id:
             button_label = f"👉 {button_label}"
-            
+
         if st.sidebar.button(button_label, key=f"session_{session_id}"):
             st.session_state.current_session_id = session_id
             st.rerun()
