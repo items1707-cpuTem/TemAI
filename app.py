@@ -169,13 +169,43 @@ st.markdown("""
     div[data-testid="stFileUploaderDropzone"] svg {
         display: none !important;
     }
-    /* ปุ่มรายการห้องสนทนาในแถบซ้าย: ให้ข้อความ (ประโยคที่เคยถาม) ชิดซ้ายสุด แทนที่จะอยู่กึ่งกลางปุ่ม */
-    [data-testid="stSidebar"] button[kind="secondary"] {
+    /* ==========================================================
+       แถบซ้าย: ปุ่มเริ่มใหม่ + ประวัติการค้นหา
+       ไม่มีกล่อง/กรอบ ไม่มีไอคอนกวนใจ ตัวหนังสือเล็กกระชับ อยู่ติดกัน
+       ========================================================== */
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div[data-testid="stColumn"]:nth-of-type(1) button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         text-align: left !important;
         justify-content: flex-start !important;
+        padding: 4px 6px !important;
+        margin: 0 !important;
+        font-size: 13px !important;
+        font-weight: 400 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        width: 100% !important;
+        color: #3c3f44 !important;
     }
-    [data-testid="stSidebar"] button[kind="secondary"] p {
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) button p {
+        font-size: 13px !important;
         text-align: left !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) button:hover {
+        background-color: #f0f4f9 !important;
+        border-radius: 6px !important;
+    }
+    /* ให้ปุ่มแต่ละรายการอยู่ติดกันหน่อย ไม่เว้นช่องว่างห่างแบบเดิม */
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) div[data-testid="stVerticalBlock"] {
+        gap: 0.15rem !important;
+    }
+    .history-header {
+        font-size: 12px !important;
+        font-weight: 600;
+        color: #9aa0a8;
+        letter-spacing: 0.02em;
+        margin: 2px 0 8px 4px;
     }
 
     /* กล่องแสดงชื่อไฟล์ที่อัปโหลดแล้ว ให้ลอยเป็นการ์ดเล็ก ๆ เหนือกล่องแชท ไม่บังปุ่มไอคอน */
@@ -249,31 +279,35 @@ if "current_session_id" not in st.session_state:
 if st.session_state.current_session_id not in st.session_state.all_chats:
     st.session_state.all_chats[st.session_state.current_session_id] = []
 
-# 2. แถบเมนูด้านซ้าย (Sidebar) สไตล์ ChatGPT
-with st.sidebar:
-    if st.button("➕ เริ่มใหม่", key="new_chat_btn"):
+# 2. แถบซ้าย: ปุ่มเริ่มใหม่ + ประวัติการค้นหา (ไม่มีกล่อง ไม่มีไอคอนกวนใจ ตัวหนังสือเล็กกระชับ)
+col_history, col_main = st.columns([1.15, 5])
+
+with col_history:
+    st.markdown('<div class="history-panel-marker"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="history-header">ประวัติการค้นหา</div>', unsafe_allow_html=True)
+
+    if st.button("เริ่มใหม่", key="new_chat_btn"):
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
         st.session_state.all_chats[st.session_state.current_session_id] = []
         st.rerun()
-        
-    st.markdown("---")
+
     for session_id in list(st.session_state.all_chats.keys()):
         chat_history = st.session_state.all_chats[session_id]
         if not chat_history or len(chat_history) == 0:
             continue  # ห้องแชทว่างเปล่า ไม่ต้องแสดงในรายการ
 
         first_msg = chat_history[0]["text"]
-        button_label = first_msg[:22] + "..." if len(first_msg) > 22 else first_msg
+        button_label = first_msg[:18] + "..." if len(first_msg) > 18 else first_msg
 
         if session_id == st.session_state.current_session_id:
-            button_label = f"👉 {button_label}"
+            button_label = f"• {button_label}"
 
-        if st.sidebar.button(button_label, key=f"session_{session_id}"):
+        if st.button(button_label, key=f"session_{session_id}"):
             st.session_state.current_session_id = session_id
             st.rerun()
-            
-    st.markdown("---")
-    if st.button("🗑️ ล้างประวัติทั้งหมดถาวร", key="clear_all_btn"):
+
+    st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
+    if st.button("ล้างประวัติทั้งหมด", key="clear_all_btn"):
         st.session_state.all_chats = {}
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
         st.session_state.all_chats[st.session_state.current_session_id] = []
@@ -283,193 +317,194 @@ with st.sidebar:
         time.sleep(1)
         st.rerun()
 
-# 3. พื้นที่แสดงเนื้อหาหลัก
+with col_main:
+    # 3. พื้นที่แสดงเนื้อหาหลัก
 
-if not api_key:
-    st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
-else:
-    active_model = "gemini-3.6-flash"
-    current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
+    if not api_key:
+        st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
+    else:
+        active_model = "gemini-3.6-flash"
+        current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
-    # กระดานแสดงผลหน้าจอแชทกลางเว็บ
-    chat_container = st.container()
-    with chat_container:
-        if current_chat_history:
-            for message in current_chat_history:
-                role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
-                bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
-                st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(
-                """
-                <div style="
-                    display: flex;
-                    align-items: flex-end;
-                    justify-content: center;
-                    text-align: center;
-                    min-height: 38vh;
-                ">
-                    <div>
-                        <div style="font-size: 32px; font-weight: 600; color: #202123; margin-bottom: 0;">
-                            สวัสดีครับ คุณมีอะไรให้ผมช่วยไหม
+        # กระดานแสดงผลหน้าจอแชทกลางเว็บ
+        chat_container = st.container()
+        with chat_container:
+            if current_chat_history:
+                for message in current_chat_history:
+                    role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
+                    bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
+                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    """
+                    <div style="
+                        display: flex;
+                        align-items: flex-end;
+                        justify-content: center;
+                        text-align: center;
+                        min-height: 38vh;
+                    ">
+                        <div>
+                            <div style="font-size: 32px; font-weight: 600; color: #202123; margin-bottom: 0;">
+                                สวัสดีครับ คุณมีอะไรให้ผมช่วยไหม
+                            </div>
                         </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-    # ระยะห่างระหว่างข้อความทักทาย/ประวัติแชท กับกล่องพิมพ์ข้อความ
-    # ให้แคบลงเมื่อยังไม่มีการสนทนา เพื่อให้ "สวัสดีครับ" กับกล่องพิมพ์ดูใกล้ชิดเป็นกลุ่มเดียวกัน
-    gap_size = "14px" if not current_chat_history else "20px"
-    st.markdown(f"<div style='padding-top: {gap_size};'></div>", unsafe_allow_html=True)
-
-    # 🔴 ไอคอนรูปภาพและไมค์ลอยซ้อนอยู่ข้างในกล่องพิมพ์ข้อความเดียวกัน (ควบคุมตำแหน่งด้วย CSS ด้านบน)
-    col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
-
-    with col_input:
-        # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
-        user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
-
-    with col_img:
-        uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
-
-    with col_voice:
-        voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
-
-    # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
-    # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
-    st.markdown("""
-        <script>
-        (function() {
-            if (window.__micTimerInitialized) { return; }
-            window.__micTimerInitialized = true;
-
-            function getDoc() { return window.parent.document; }
-
-            var recordStartTime = null;
-            var originalPlaceholder = null;
-            var wasRecording = false;
-
-            function isRecording(doc) {
-                var el = doc.querySelector(
-                    'div[data-testid="stAudioInputWaveSurfer"], div[data-testid="stAudioInputRecordState"]'
-                );
-                if (!el) return false;
-                var rect = el.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0;
-            }
-
-            function tick() {
-                var doc = getDoc();
-                var textarea = doc.querySelector('div[data-testid="stChatInput"] textarea');
-                if (!textarea) return;
-
-                var recording = isRecording(doc);
-
-                if (recording && !wasRecording) {
-                    // เพิ่งเริ่มอัดเสียง: จำข้อความเดิมไว้ก่อน แล้วเริ่มจับเวลา
-                    recordStartTime = Date.now();
-                    if (originalPlaceholder === null) {
-                        originalPlaceholder = textarea.getAttribute('placeholder') || '';
-                    }
-                }
-
-                if (recording) {
-                    var elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
-                    var mm = Math.floor(elapsedSec / 60);
-                    var ss = String(elapsedSec % 60).padStart(2, '0');
-                    textarea.setAttribute('placeholder', '🎙️ กำลังอัดเสียง ' + mm + ':' + ss + ' ...');
-                } else if (wasRecording) {
-                    // อัดเสียงเสร็จ/ยกเลิก: คืนข้อความเดิมกลับไป
-                    if (originalPlaceholder !== null) {
-                        textarea.setAttribute('placeholder', originalPlaceholder);
-                    }
-                }
-
-                wasRecording = recording;
-            }
-
-            setInterval(tick, 400);
-        })();
-        </script>
-    """, unsafe_allow_html=True)
-
-    # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
-    if user_prompt or uploaded_image or voice_recorder_data:
-
-        # เตรียมข้อความที่จะแสดงในกล่องฝั่งผู้ใช้
-        display_text = user_prompt if user_prompt else "📎 ส่งไฟล์แนบ"
-
-        # เพิ่มข้อความผู้ใช้เข้าประวัติแชท
-        current_chat_history.append({"role": "user", "text": display_text})
-
-        # เตรียมเนื้อหาที่จะส่งเข้า Gemini API (ข้อความ + ไฟล์แนบถ้ามี)
-        content_parts = []
-
-        if user_prompt:
-            content_parts.append(user_prompt)
-
-        if uploaded_image is not None:
-            image = Image.open(uploaded_image)
-            content_parts.append(image)
-
-        if voice_recorder_data is not None:
-            audio_bytes = voice_recorder_data.read()
-            content_parts.append(
-                types.Part.from_bytes(
-                    data=audio_bytes,
-                    mime_type="audio/wav"
+                    """,
+                    unsafe_allow_html=True
                 )
+
+        # ระยะห่างระหว่างข้อความทักทาย/ประวัติแชท กับกล่องพิมพ์ข้อความ
+        # ให้แคบลงเมื่อยังไม่มีการสนทนา เพื่อให้ "สวัสดีครับ" กับกล่องพิมพ์ดูใกล้ชิดเป็นกลุ่มเดียวกัน
+        gap_size = "14px" if not current_chat_history else "20px"
+        st.markdown(f"<div style='padding-top: {gap_size};'></div>", unsafe_allow_html=True)
+
+        # 🔴 ไอคอนรูปภาพและไมค์ลอยซ้อนอยู่ข้างในกล่องพิมพ์ข้อความเดียวกัน (ควบคุมตำแหน่งด้วย CSS ด้านบน)
+        col_input, col_img, col_voice = st.columns([5.5, 0.6, 0.6])
+
+        with col_input:
+            # กล่องพิมพ์แชทมาตรฐานโผล่กลับมาแสดงผลชัดเจน 100% พิมพ์คล่องตัว และกด Enter บนคีย์บอร์ดสั่งส่งได้ทันที!
+            user_prompt = st.chat_input("พิมพ์คำถามของคุณที่นี่ แล้วกด Enter เพื่อส่ง...")
+
+        with col_img:
+            uploaded_image = st.file_uploader("🖼️", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed")
+
+        with col_voice:
+            voice_recorder_data = st.audio_input("🎙️", key="voice_box", label_visibility="collapsed")
+
+        # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
+        # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
+        st.markdown("""
+            <script>
+            (function() {
+                if (window.__micTimerInitialized) { return; }
+                window.__micTimerInitialized = true;
+
+                function getDoc() { return window.parent.document; }
+
+                var recordStartTime = null;
+                var originalPlaceholder = null;
+                var wasRecording = false;
+
+                function isRecording(doc) {
+                    var el = doc.querySelector(
+                        'div[data-testid="stAudioInputWaveSurfer"], div[data-testid="stAudioInputRecordState"]'
+                    );
+                    if (!el) return false;
+                    var rect = el.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0;
+                }
+
+                function tick() {
+                    var doc = getDoc();
+                    var textarea = doc.querySelector('div[data-testid="stChatInput"] textarea');
+                    if (!textarea) return;
+
+                    var recording = isRecording(doc);
+
+                    if (recording && !wasRecording) {
+                        // เพิ่งเริ่มอัดเสียง: จำข้อความเดิมไว้ก่อน แล้วเริ่มจับเวลา
+                        recordStartTime = Date.now();
+                        if (originalPlaceholder === null) {
+                            originalPlaceholder = textarea.getAttribute('placeholder') || '';
+                        }
+                    }
+
+                    if (recording) {
+                        var elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
+                        var mm = Math.floor(elapsedSec / 60);
+                        var ss = String(elapsedSec % 60).padStart(2, '0');
+                        textarea.setAttribute('placeholder', '🎙️ กำลังอัดเสียง ' + mm + ':' + ss + ' ...');
+                    } else if (wasRecording) {
+                        // อัดเสียงเสร็จ/ยกเลิก: คืนข้อความเดิมกลับไป
+                        if (originalPlaceholder !== null) {
+                            textarea.setAttribute('placeholder', originalPlaceholder);
+                        }
+                    }
+
+                    wasRecording = recording;
+                }
+
+                setInterval(tick, 400);
+            })();
+            </script>
+        """, unsafe_allow_html=True)
+
+        # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
+        if user_prompt or uploaded_image or voice_recorder_data:
+
+            # เตรียมข้อความที่จะแสดงในกล่องฝั่งผู้ใช้
+            display_text = user_prompt if user_prompt else "📎 ส่งไฟล์แนบ"
+
+            # เพิ่มข้อความผู้ใช้เข้าประวัติแชท
+            current_chat_history.append({"role": "user", "text": display_text})
+
+            # เตรียมเนื้อหาที่จะส่งเข้า Gemini API (ข้อความ + ไฟล์แนบถ้ามี)
+            content_parts = []
+
+            if user_prompt:
+                content_parts.append(user_prompt)
+
+            if uploaded_image is not None:
+                image = Image.open(uploaded_image)
+                content_parts.append(image)
+
+            if voice_recorder_data is not None:
+                audio_bytes = voice_recorder_data.read()
+                content_parts.append(
+                    types.Part.from_bytes(
+                        data=audio_bytes,
+                        mime_type="audio/wav"
+                    )
+                )
+
+            # รวมบริบทประวัติแชทเดิมเป็นข้อความเดียว ก่อนส่งเข้าโมเดล
+            full_context_string = "\n".join(
+                [f"{msg['role']}: {msg['text']}" for msg in current_chat_history[:-1]]
             )
 
-        # รวมบริบทประวัติแชทเดิมเป็นข้อความเดียว ก่อนส่งเข้าโมเดล
-        full_context_string = "\n".join(
-            [f"{msg['role']}: {msg['text']}" for msg in current_chat_history[:-1]]
-        )
+            with st.spinner("🤖 กำลังคิดคำตอบ..."):
+                client = genai.Client(api_key=api_key)
+                ai_text = None
+                max_retries = 4
+                last_error = None
 
-        with st.spinner("🤖 กำลังคิดคำตอบ..."):
-            client = genai.Client(api_key=api_key)
-            ai_text = None
-            max_retries = 4
-            last_error = None
+                for attempt in range(max_retries):
+                    try:
+                        response = client.models.generate_content(
+                            model=active_model,
+                            contents=content_parts if content_parts else [full_context_string],
+                        )
+                        ai_text = response.text
+                        break  # สำเร็จแล้ว ออกจากลูปทันที
+                    except Exception as e:
+                        last_error = e
+                        error_text = str(e)
+                        # เช็กว่าเป็น error ชั่วคราว (503 โมเดลคนใช้เยอะ / 429 คำขอถี่เกินไป) หรือไม่
+                        is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
 
-            for attempt in range(max_retries):
-                try:
-                    response = client.models.generate_content(
-                        model=active_model,
-                        contents=content_parts if content_parts else [full_context_string],
-                    )
-                    ai_text = response.text
-                    break  # สำเร็จแล้ว ออกจากลูปทันที
-                except Exception as e:
-                    last_error = e
-                    error_text = str(e)
-                    # เช็กว่าเป็น error ชั่วคราว (503 โมเดลคนใช้เยอะ / 429 คำขอถี่เกินไป) หรือไม่
-                    is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
+                        if is_temporary and attempt < max_retries - 1:
+                            wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
+                            st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่อีกครั้ง ({attempt + 1}/{max_retries - 1})...")
+                            time.sleep(wait_seconds)
+                            continue
+                        else:
+                            break
 
-                    if is_temporary and attempt < max_retries - 1:
-                        wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
-                        st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่อีกครั้ง ({attempt + 1}/{max_retries - 1})...")
-                        time.sleep(wait_seconds)
-                        continue
+                if ai_text is None:
+                    error_text = str(last_error)
+                    if ("503" in error_text) or ("UNAVAILABLE" in error_text):
+                        ai_text = "⚠️ ขออภัยครับ ตอนนี้เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นมาก ลองพิมพ์คำถามส่งใหม่อีกครั้งในอีกสักครู่นะครับ"
+                    elif ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text):
+                        ai_text = "⚠️ ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้งครับ"
                     else:
-                        break
+                        ai_text = f"⚠️ เกิดข้อผิดพลาด: {last_error}"
 
-            if ai_text is None:
-                error_text = str(last_error)
-                if ("503" in error_text) or ("UNAVAILABLE" in error_text):
-                    ai_text = "⚠️ ขออภัยครับ ตอนนี้เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นมาก ลองพิมพ์คำถามส่งใหม่อีกครั้งในอีกสักครู่นะครับ"
-                elif ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text):
-                    ai_text = "⚠️ ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้งครับ"
-                else:
-                    ai_text = f"⚠️ เกิดข้อผิดพลาด: {last_error}"
+            # เพิ่มคำตอบ AI เข้าประวัติแชท
+            current_chat_history.append({"role": "assistant", "text": ai_text})
 
-        # เพิ่มคำตอบ AI เข้าประวัติแชท
-        current_chat_history.append({"role": "assistant", "text": ai_text})
+            # บันทึกประวัติทั้งหมดลงดิสก์
+            save_all_chats_to_disk(st.session_state.all_chats)
 
-        # บันทึกประวัติทั้งหมดลงดิสก์
-        save_all_chats_to_disk(st.session_state.all_chats)
-
-        live_scroll()
-        st.rerun()
+            live_scroll()
+            st.rerun()
