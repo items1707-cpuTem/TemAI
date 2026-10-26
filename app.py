@@ -40,7 +40,7 @@ st.markdown("""
         padding-top: 10px !important;
         padding-bottom: 10px !important;
         padding-left: 44px !important;
-        padding-right: 96px !important;
+        padding-right: 104px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -104,12 +104,12 @@ st.markdown("""
     /* ปุ่มไมค์อัดเสียง: ถูกย้ายมาอยู่ข้างในกรอบช่องพิมพ์ข้อความ ทางขวาสุด (ติดกับปุ่มส่ง) แสดงเป็นไอคอนไมค์อย่างเดียว */
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] {
         position: absolute !important;
-        right: 52px !important;
+        right: 50px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        width: 36px !important;
-        min-width: 36px !important;
-        height: 36px !important;
+        width: 40px !important;
+        min-width: 40px !important;
+        height: 40px !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -119,6 +119,40 @@ st.markdown("""
         background-color: transparent !important;
         border-color: transparent !important;
         box-shadow: none !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] > div {
+        padding: 0 !important;
+        margin: 0 !important;
+        height: 40px !important;
+        min-height: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] button {
+        width: 40px !important;
+        height: 40px !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: none !important;
+        cursor: pointer !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] button:hover {
+        background-color: #e4e7ec !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] button svg {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] button [data-testid="stIconMaterial"] {
+        font-size: 26px !important;
+        width: 26px !important;
+        height: 26px !important;
     }
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] label,
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] small {
@@ -175,18 +209,21 @@ st.markdown("""
         padding: 0 !important;
         min-height: 0 !important;
     }
-    /* ปุ่มไอคอนในเมนู (ปุ่มเลือกไฟล์ + ปุ่มอัดเสียง): สี่เหลี่ยมมนเล็ก ๆ ไอคอนอย่างเดียว */
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button,
-    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button {
-        width: 44px !important;
-        height: 40px !important;
+    /* ปุ่มเลือกไฟล์ในเมนู (เดิมเป็นปุ่มขอบขาวเขียนว่า "Upload"): ซ่อนตัวหนังสือทั้งหมด เหลือไอคอนอย่างเดียว
+       ใช้ได้ทั้งแบบมีกล่องลากวาง (dropzone) และแบบปุ่มเดี่ยว ๆ ของ Streamlit รุ่นใหม่ */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] > *:not(:has(button)):not(button):not([data-testid="stFileUploaderFile"]) {
+        display: none !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button) {
+        width: 52px !important;
+        height: 48px !important;
         min-height: 0 !important;
         padding: 0 !important;
         margin: 0 auto !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         position: relative !important;
         overflow: hidden !important;
         display: flex !important;
@@ -195,34 +232,25 @@ st.markdown("""
         font-size: 0 !important;
         color: transparent !important;
     }
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button:hover,
-    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button:hover {
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button):hover {
         background-color: #f0f4f9 !important;
     }
-    /* ซ่อนทุกอย่างที่ไม่ใช่ปุ่ม และทำให้ตัวหนังสือทุกตัวในกล่องแนบไฟล์ (เช่นคำว่า Upload) มองไม่เห็น */
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] > *:not(button):not(:has(button)) {
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button) * {
         display: none !important;
     }
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] * {
-        font-size: 0 !important;
-        color: transparent !important;
-    }
-    /* ซ่อนตัวหนังสือ "Browse files" ทั้งหมดในปุ่ม แล้วแปะไอคอนอิโมจิแทน */
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button > * {
-        visibility: hidden !important;
-    }
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button::after {
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
         position: absolute !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        font-size: 22px !important;
+        font-size: 26px !important;
         line-height: 1 !important;
+        color: initial !important;
     }
-    div[data-testid="stVerticalBlock"]:has(> div > .attach-file-marker) div[data-testid="stFileUploaderDropzone"] button::after {
+    div[data-testid="stVerticalBlock"]:has(> div > .attach-file-marker) div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
         content: "📎";
     }
-    div[data-testid="stVerticalBlock"]:has(> div > .attach-image-marker) div[data-testid="stFileUploaderDropzone"] button::after {
+    div[data-testid="stVerticalBlock"]:has(> div > .attach-image-marker) div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
         content: "🖼️";
     }
     /* ไฟล์ที่แนบแล้ว: ซ่อนชื่อ/ขนาดไฟล์ทั้งหมด แสดงแค่เครื่องหมายถูก ✅ และปุ่ม ✕ สำหรับลบ */
