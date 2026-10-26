@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import google.genai as genai
 from google.genai import types
 from PIL import Image
@@ -70,32 +71,33 @@ st.markdown("""
     }
     
     /* ==========================================================
-       ปุ่ม "+" แนบไฟล์ ลอยอยู่ "ข้างใน" ขอบซ้ายสุดของกล่องพิมพ์ข้อความ
+       ปุ่ม "+" แนบไฟล์ ถูกย้ายด้วยสคริปต์ (ด้านล่าง) ให้เข้าไปอยู่
+       "ข้างใน" กรอบกล่องพิมพ์ข้อความจริง ๆ (ไม่ใช่แค่ลอยซ้อนด้วย CSS เฉย ๆ)
        กดแล้วเด้งเมนูเล็ก ๆ ให้เลือก แนบไฟล์ / แนบรูปภาพ / อัดเสียง
        ========================================================== */
 
-    /* แถวที่รวม ปุ่ม + และ chat_input ต้องเป็นจุดอ้างอิงตำแหน่ง
-       ใช้เครื่องหมายกำกับ (.chat-input-row-marker) ระบุแถวให้เจาะจง เพื่อไม่ให้ไปชนกับ
-       คอลัมน์แถบประวัติด้านนอกที่ครอบกล่องแชทไว้อีกชั้นหนึ่ง */
+    /* คอลัมน์เดิมที่เคยเป็นที่อยู่ของปุ่ม + ไม่ต้องกินพื้นที่แถวอีกต่อไป เพราะปุ่มถูกย้ายเข้ากรอบแชทแล้ว */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) {
-        position: relative !important;
         align-items: center !important;
     }
-    /* คอลัมน์ปุ่ม + (คอลัมน์ที่ 1) ลอยซ้อนทับอยู่ในขอบซ้ายของกล่องแชท */
     div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
+        display: none !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2) {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+
+    /* กล่องพิมพ์ข้อความ: ให้เป็นจุดอ้างอิงตำแหน่ง เพื่อให้ปุ่ม + ที่ถูกย้ายเข้ามาเกาะอยู่ข้างในขอบซ้ายพอดี */
+    div[data-testid="stChatInput"] {
+        position: relative !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stPopover"] {
         position: absolute !important;
         left: 6px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        width: auto !important;
-        min-width: 0 !important;
-        flex: none !important;
         z-index: 999 !important;
-    }
-    /* คอลัมน์กล่องพิมพ์ข้อความ (คอลัมน์ที่ 2) กินพื้นที่เต็มแถว */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2) {
-        width: 100% !important;
-        flex: 1 1 auto !important;
     }
 
     /* ปุ่ม "+" วงกลมโปร่งใส ไม่มีกรอบ */
@@ -120,31 +122,114 @@ st.markdown("""
     div[data-testid="stPopover"] > div > button:hover {
         background-color: #eaecef !important;
     }
-    /* ซ่อนลูกศรเล็ก ๆ ที่ Streamlit แปะมากับปุ่มเปิดเมนูโดยอัตโนมัติ */
-    div[data-testid="stPopover"] > div > button svg {
+    /* ซ่อนลูกศร/คำว่า "expand more" ที่ Streamlit แปะมากับปุ่มเปิดเมนู (เป็นตัวหนังสือชื่อไอคอนที่หลุดออกมา) */
+    div[data-testid="stPopover"] button svg,
+    div[data-testid="stPopover"] button [data-testid="stIconMaterial"],
+    div[data-testid="stPopover"] button span[translate="no"] {
         display: none !important;
     }
 
-    /* แผงเมนูที่เด้งขึ้นมาหลังกดปุ่ม +: แนบไฟล์ / แนบรูปภาพ / อัดเสียง */
+    /* แผงเมนูที่เด้งขึ้นมาหลังกดปุ่ม +: เหลือแต่ไอคอนล้วน ๆ ไม่มีตัวหนังสือภาษาไหนเลย */
     div[data-testid="stPopoverBody"] {
-        padding: 14px !important;
-        min-width: 260px !important;
+        padding: 6px !important;
+        min-width: 0 !important;
+        width: auto !important;
     }
-    div[data-testid="stPopoverBody"] [data-testid="stFileUploaderDropzoneInstructions"] small,
-    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzoneInstructions"] svg {
+    /* ซ่อนข้อความทั้งหมดในเมนู: คำอธิบายลากวาง, ป้ายกำกับ, ตัวเลขเวลา, ชื่อไอคอนที่หลุดมาเป็นตัวหนังสือ */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzoneInstructions"],
+    div[data-testid="stPopoverBody"] label,
+    div[data-testid="stPopoverBody"] small,
+    div[data-testid="stPopoverBody"] [data-testid="stIconMaterial"],
+    div[data-testid="stPopoverBody"] svg {
         display: none !important;
     }
-    div[data-testid="stPopoverBody"] section {
-        padding: 6px !important;
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] section,
+    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] section {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        min-height: 0 !important;
     }
-    .attach-menu-label {
-        font-size: 13px !important;
-        font-weight: 600;
-        color: #6b7280;
-        margin: 10px 0 4px 2px;
+    /* ปุ่มไอคอนในเมนู (ปุ่มเลือกไฟล์ + ปุ่มอัดเสียง): สี่เหลี่ยมมนเล็ก ๆ ไอคอนอย่างเดียว */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button,
+    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button {
+        width: 44px !important;
+        height: 40px !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0 !important;
+        color: transparent !important;
     }
-    .attach-menu-label:first-child {
-        margin-top: 0;
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button:hover,
+    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button:hover {
+        background-color: #f0f4f9 !important;
+    }
+    /* ซ่อนตัวหนังสือ "Browse files" ทั้งหมดในปุ่ม แล้วแปะไอคอนอิโมจิแทน */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button > * {
+        visibility: hidden !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button::after {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        font-size: 22px !important;
+        line-height: 1 !important;
+    }
+    div[data-testid="stVerticalBlock"]:has(> div > .attach-file-marker) div[data-testid="stFileUploaderDropzone"] button::after {
+        content: "📎";
+    }
+    div[data-testid="stVerticalBlock"]:has(> div > .attach-image-marker) div[data-testid="stFileUploaderDropzone"] button::after {
+        content: "🖼️";
+    }
+    /* ปุ่มอัดเสียง: ใช้ไอคอนไมค์อิโมจิ (ตัวหนังสือ/ตัวเลขเวลาในวิดเจ็ตถูกซ่อนไว้แล้ว เวลาอัดดูได้ในช่องพิมพ์ข้อความ) */
+    div[data-testid="stVerticalBlock"]:has(> div > .attach-audio-marker) div[data-testid="stAudioInput"] button::before {
+        content: "🎙️";
+        font-size: 22px !important;
+        line-height: 1 !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button > * {
+        display: none !important;
+    }
+    /* ไฟล์ที่แนบแล้ว: ซ่อนชื่อ/ขนาดไฟล์ทั้งหมด แสดงแค่เครื่องหมายถูก ✅ และปุ่ม ✕ สำหรับลบ */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] {
+        font-size: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 2px 0 !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] > *:not(button):not(:has(button)) {
+        display: none !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"]::before {
+        content: "✅";
+        font-size: 18px !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] button {
+        display: inline-flex !important;
+        width: 24px !important;
+        height: 24px !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        font-size: 14px !important;
+        color: #6b7280 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] button::after {
+        content: "✕";
     }
     /* ==========================================================
        แถบซ้าย: ปุ่มเริ่มใหม่ + ประวัติการค้นหา
@@ -329,20 +414,25 @@ with col_main:
 
         with col_plus:
             with st.popover("➕", use_container_width=False):
-                st.markdown('<div class="attach-menu-label">📎 แนบไฟล์</div>', unsafe_allow_html=True)
-                uploaded_file = st.file_uploader(
-                    "แนบไฟล์", key="file_box", label_visibility="collapsed"
-                )
+                # แต่ละรายการมีเครื่องหมายกำกับเฉพาะตัว (marker) ให้ CSS จำได้แม่นยำว่าเป็นปุ่มไหน
+                # แล้วแทนที่ข้อความเริ่มต้นของ Streamlit (Browse files / Drag and drop...) ด้วยคำสั้น ๆ บอกแค่ว่าเป็นปุ่มอะไร
+                with st.container():
+                    st.markdown('<div class="attach-file-marker"></div>', unsafe_allow_html=True)
+                    uploaded_file = st.file_uploader(
+                        "แนบไฟล์", key="file_box", label_visibility="collapsed"
+                    )
 
-                st.markdown('<div class="attach-menu-label">🖼️ แนบรูปภาพ</div>', unsafe_allow_html=True)
-                uploaded_image = st.file_uploader(
-                    "แนบรูปภาพ", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed"
-                )
+                with st.container():
+                    st.markdown('<div class="attach-image-marker"></div>', unsafe_allow_html=True)
+                    uploaded_image = st.file_uploader(
+                        "แนบรูปภาพ", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed"
+                    )
 
-                st.markdown('<div class="attach-menu-label">🎙️ อัดเสียง</div>', unsafe_allow_html=True)
-                voice_recorder_data = st.audio_input(
-                    "อัดเสียง", key="voice_box", label_visibility="collapsed"
-                )
+                with st.container():
+                    st.markdown('<div class="attach-audio-marker"></div>', unsafe_allow_html=True)
+                    voice_recorder_data = st.audio_input(
+                        "อัดเสียง", key="voice_box", label_visibility="collapsed"
+                    )
 
         with col_input:
             # เครื่องหมายกำกับแถวนี้ไว้ ให้ CSS ด้านบนจำแถวได้แม่นยำ ไม่ไปชนกับคอลัมน์แถบประวัติด้านนอก
@@ -352,61 +442,57 @@ with col_main:
 
         # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
         # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
-        st.markdown("""
+        components.html("""
             <script>
             (function() {
-                if (window.__micTimerInitialized) { return; }
-                window.__micTimerInitialized = true;
+                var P = window.parent;
+                if (!P) { return; }
+                var doc = P.document;
 
-                function getDoc() { return window.parent.document; }
+                // ---- 1) ย้ายปุ่ม "+" เข้าไปอยู่ข้างในกรอบกล่องพิมพ์ข้อความจริง ๆ ----
+                function movePlus() {
+                    var chat = doc.querySelector('div[data-testid="stChatInput"]');
+                    var pop = doc.querySelector('div[data-testid="stPopover"]');
+                    if (chat && pop && !chat.contains(pop)) {
+                        chat.appendChild(pop);
+                    }
+                }
 
-                var recordStartTime = null;
-                var originalPlaceholder = null;
-                var wasRecording = false;
-
-                function isRecording(doc) {
+                // ---- 2) โชว์วินาทีที่อัดเสียงในช่องพิมพ์ข้อความ ----
+                var startTime = null, originalPh = null, was = false;
+                function isRecording() {
                     var el = doc.querySelector(
                         'div[data-testid="stAudioInputWaveSurfer"], div[data-testid="stAudioInputRecordState"]'
                     );
-                    if (!el) return false;
-                    var rect = el.getBoundingClientRect();
-                    return rect.width > 0 && rect.height > 0;
+                    if (!el) { return false; }
+                    var r = el.getBoundingClientRect();
+                    return r.width > 0 && r.height > 0;
                 }
-
                 function tick() {
-                    var doc = getDoc();
-                    var textarea = doc.querySelector('div[data-testid="stChatInput"] textarea');
-                    if (!textarea) return;
-
-                    var recording = isRecording(doc);
-
-                    if (recording && !wasRecording) {
-                        // เพิ่งเริ่มอัดเสียง: จำข้อความเดิมไว้ก่อน แล้วเริ่มจับเวลา
-                        recordStartTime = Date.now();
-                        if (originalPlaceholder === null) {
-                            originalPlaceholder = textarea.getAttribute('placeholder') || '';
-                        }
+                    movePlus();
+                    var ta = doc.querySelector('div[data-testid="stChatInput"] textarea');
+                    if (!ta) { return; }
+                    var rec = isRecording();
+                    if (rec && !was) {
+                        startTime = Date.now();
+                        if (originalPh === null) { originalPh = ta.getAttribute('placeholder') || ''; }
                     }
-
-                    if (recording) {
-                        var elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
-                        var mm = Math.floor(elapsedSec / 60);
-                        var ss = String(elapsedSec % 60).padStart(2, '0');
-                        textarea.setAttribute('placeholder', '🎙️ กำลังอัดเสียง ' + mm + ':' + ss + ' ...');
-                    } else if (wasRecording) {
-                        // อัดเสียงเสร็จ/ยกเลิก: คืนข้อความเดิมกลับไป
-                        if (originalPlaceholder !== null) {
-                            textarea.setAttribute('placeholder', originalPlaceholder);
-                        }
+                    if (rec) {
+                        var s = Math.floor((Date.now() - startTime) / 1000);
+                        var mm = Math.floor(s / 60);
+                        var ss = String(s % 60).padStart(2, '0');
+                        ta.setAttribute('placeholder', '🎙️ กำลังอัดเสียง ' + mm + ':' + ss + ' ...');
+                    } else if (was && originalPh !== null) {
+                        ta.setAttribute('placeholder', originalPh);
                     }
-
-                    wasRecording = recording;
+                    was = rec;
                 }
-
-                setInterval(tick, 400);
+                // ตั้งตัวจับเวลาไว้ที่หน้าหลัก (parent) เพื่อให้ทำงานต่อแม้ iframe นี้ถูกสร้างใหม่ตอน Streamlit รันซ้ำ
+                if (P.__chatUiTimer) { P.clearInterval(P.__chatUiTimer); }
+                P.__chatUiTimer = P.setInterval(tick, 300);
             })();
             </script>
-        """, unsafe_allow_html=True)
+        """, height=0)
 
         # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
         if user_prompt or uploaded_image or voice_recorder_data or uploaded_file:
