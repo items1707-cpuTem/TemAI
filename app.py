@@ -6,6 +6,10 @@ from PIL import Image
 import time
 import os
 import pickle
+import io
+import re
+import html
+from datetime import datetime, timezone, timedelta
 
 # 1. ตั้งค่าหน้าเว็บสไตล์ ChatGPT Light Mode
 st.set_page_config(
@@ -94,6 +98,10 @@ st.markdown("""
         position: relative !important;
     }
     div[data-testid="stChatInput"] div[data-testid="stPopover"] {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 0 !important;
+        pointer-events: none !important;
         position: absolute !important;
         left: 6px !important;
         top: 50% !important;
@@ -157,6 +165,15 @@ st.markdown("""
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] label,
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] small {
         display: none !important;
+    }
+
+    /* กล่องที่ย้ายเข้ามาในช่องพิมพ์ต้องไม่บังช่องพิมพ์: ให้คลิกทะลุได้ ยกเว้นตัวปุ่มเอง */
+    div[data-testid="stChatInput"] div[data-testid="stPopover"] button,
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] button {
+        pointer-events: auto !important;
+    }
+    div[data-testid="stChatInput"] textarea {
+        cursor: text !important;
     }
 
     /* ปุ่ม "+" วงกลมโปร่งใส ไม่มีกรอบ */
@@ -255,7 +272,7 @@ st.markdown("""
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
         display: block !important;
         font-family: 'Sarabun', sans-serif !important;
-        font-size: 16px !important;
+        font-size: 8px !important;
         font-weight: 500 !important;
         line-height: 1 !important;
         color: #1f2937 !important;
@@ -365,6 +382,66 @@ def live_scroll():
 # 💾 ระบบจัดเก็บประวัติห้องแชททั้งหมดลงดิสก์ถาวร
 ALL_CHATS_FILE = "persistent_all_sessions.pkl"
 
+# 🕒 บอกโมเดลว่า "ตอนนี้" คือวันเวลาไหน (โมเดลไม่รู้วันที่จริงเอง จึงเคยตอบวันที่ผิด)
+THAI_DAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+               "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+
+def build_system_instruction():
+    now = datetime.now(timezone(timedelta(hours=7)))  # เวลาประเทศไทย
+    date_text = (
+        f"วัน{THAI_DAYS[now.weekday()]}ที่ {now.day} {THAI_MONTHS[now.month - 1]} "
+        f"พ.ศ. {now.year + 543} (ค.ศ. {now.year}) เวลา {now.strftime('%H:%M')} น. (เวลาประเทศไทย)"
+    )
+    return (
+        "คุณเป็นผู้ช่วย AI ที่ฉลาด รอบคอบ และเป็นมิตร\n"
+        f"ข้อมูลปัจจุบัน: ตอนนี้คือ{date_text} ใช้ข้อมูลนี้เป็นความจริงเสมอเมื่อถูกถามเรื่องวัน เวลา วันที่ หรือปี "
+        "ห้ามเดาวันที่เอง\n"
+        "หลักการตอบ:\n"
+        "1) ตอบให้ตรงกับสิ่งที่ผู้ใช้ถาม ตรงประเด็นก่อน แล้วค่อยเสริมรายละเอียดที่จำเป็น\n"
+        "2) ตอบเป็นภาษาเดียวกับที่ผู้ใช้ใช้ถาม (ถ้าถามไทยให้ตอบไทย)\n"
+        "3) ใช้บทสนทนาก่อนหน้าเป็นบริบทต่อเนื่อง ถ้าผู้ใช้ถามต่อหรืออ้างถึงสิ่งที่คุยกันไปแล้ว\n"
+        "4) ถ้าข้อมูลเปลี่ยนตามเวลา (ข่าว ราคา ผลกีฬา ฯลฯ) ให้ค้นหาข้อมูลล่าสุดก่อนตอบ\n"
+        "5) ถ้าไม่แน่ใจหรือไม่ทราบ ให้บอกตรง ๆ อย่าแต่งข้อมูล\n"
+        "6) ถ้าคำถามกำกวมจริง ๆ ให้ถามกลับสั้น ๆ หนึ่งข้อ\n"
+        "7) กระชับ ชัดเจน อ่านง่าย"
+    )
+
+def format_bubble_text(text):
+    """แปลงข้อความ (มาร์กดาวน์แบบง่าย) เป็น HTML สำหรับแสดงในกล่องแชท เช่น **ตัวหนา** ไม่ให้โชว์เป็นดอกจัน"""
+    t = html.escape(text)
+    t = re.sub(r"^\s*#{1,6}\s*(.+)$", r"<b>\1</b>", t, flags=re.M)
+    t = re.sub(r"^\s*[\*\-]\s+", "• ", t, flags=re.M)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t, flags=re.S)
+    t = re.sub(r"(?<![\*\w])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\*\w])", r"<i>\1</i>", t)
+    t = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", t)
+    return t.replace("\n", "<br>")
+
+def build_contents(history_before, content_parts):
+    """ส่งประวัติการคุยก่อนหน้าไปด้วย (เดิมส่งแค่ข้อความล่าสุด โมเดลเลยไม่จำบริบทและตอบไม่ตรง)"""
+    contents = []
+    for msg in history_before[-20:]:
+        text = msg.get("text", "")
+        if not text or text.startswith("⚠️"):
+            continue
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
+
+    parts = []
+    for item in content_parts:
+        if isinstance(item, str):
+            parts.append(types.Part.from_text(text=item))
+        elif isinstance(item, Image.Image):
+            buf = io.BytesIO()
+            item.convert("RGB").save(buf, format="JPEG")
+            parts.append(types.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg"))
+        else:
+            parts.append(item)
+    if not any(isinstance(p.text, str) and p.text for p in parts if hasattr(p, "text")):
+        parts.append(types.Part.from_text(text="โปรดตอบหรือช่วยเหลือตามไฟล์/เสียง/รูปภาพที่แนบมา"))
+    contents.append(types.Content(role="user", parts=parts))
+    return contents
+
 def save_all_chats_to_disk(all_chats):
     try:
         serializable_data = {}
@@ -457,7 +534,7 @@ with col_main:
                 for message in current_chat_history:
                     role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
                     bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
-                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{message['text']}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{format_bubble_text(message['text'])}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(
                     """
@@ -555,6 +632,14 @@ with col_main:
                     }
                     var ta = doc.querySelector('div[data-testid="stChatInput"] textarea');
                     if (!ta) { return; }
+                    // ซ่อมตัวเอง: ถ้ามีอะไรบังกลางช่องพิมพ์ ให้คลิกทะลุไปถึงช่องพิมพ์
+                    var tr = ta.getBoundingClientRect();
+                    if (tr.width > 0 && tr.height > 0) {
+                        var hit = doc.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
+                        if (hit && hit !== ta && !hit.contains(ta)) {
+                            hit.style.setProperty('pointer-events', 'none', 'important');
+                        }
+                    }
                     var rec = isRecording();
                     if (rec && !was) {
                         startTime = Date.now();
@@ -650,14 +735,24 @@ with col_main:
                 ai_text = None
                 max_retries = 4
                 last_error = None
+                use_search = True  # เปิดการค้นหาข้อมูลล่าสุดจาก Google ถ้าใช้ไม่ได้จะปิดแล้วลองใหม่เอง
 
                 for attempt in range(max_retries):
                     try:
+                        config_kwargs = dict(
+                            system_instruction=build_system_instruction(),
+                            temperature=0.6,
+                        )
+                        if use_search:
+                            config_kwargs["tools"] = [types.Tool(google_search=types.GoogleSearch())]
                         response = client.models.generate_content(
                             model=active_model,
-                            contents=content_parts if content_parts else [full_context_string],
+                            contents=build_contents(current_chat_history[:-1], content_parts),
+                            config=types.GenerateContentConfig(**config_kwargs),
                         )
                         ai_text = response.text
+                        if not ai_text:
+                            ai_text = "ขออภัยครับ ผมยังไม่สามารถตอบคำถามนี้ได้ ลองถามใหม่อีกครั้งด้วยคำอื่นดูนะครับ"
                         break  # สำเร็จแล้ว ออกจากลูปทันที
                     except Exception as e:
                         last_error = e
@@ -669,6 +764,9 @@ with col_main:
                             wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
                             st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่อีกครั้ง ({attempt + 1}/{max_retries - 1})...")
                             time.sleep(wait_seconds)
+                            continue
+                        elif use_search and not is_temporary:
+                            use_search = False  # อาจเป็นเพราะเครื่องมือค้นหาใช้ไม่ได้ ลองใหม่แบบไม่ค้นหา
                             continue
                         else:
                             break
