@@ -232,11 +232,21 @@ st.markdown("""
         display: none !important;
     }
     div[data-testid="stPopoverBody"] {
-        min-width: 210px !important;
+        min-width: 190px !important;
+    }
+    /* ระยะห่างระหว่างแถวในเมนูให้แคบและเท่ากัน ไม่ห่างเกินไป */
+    div[data-testid="stPopoverBody"] div[data-testid="stVerticalBlock"] {
+        gap: 2px !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stElementContainer"],
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
     }
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button) {
         width: 100% !important;
-        height: 46px !important;
+        height: 40px !important;
         min-height: 0 !important;
         padding: 0 14px !important;
         margin: 0 !important;
@@ -248,7 +258,7 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 12px !important;
+        gap: 10px !important;
         font-size: 0 !important;
         color: transparent !important;
         cursor: pointer !important;
@@ -263,8 +273,8 @@ st.markdown("""
         content: "" !important;
         display: block !important;
         flex: none !important;
-        width: 24px !important;
-        height: 24px !important;
+        width: 20px !important;
+        height: 20px !important;
         background-repeat: no-repeat !important;
         background-position: center !important;
         background-size: contain !important;
@@ -272,7 +282,7 @@ st.markdown("""
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
         display: block !important;
         font-family: 'Sarabun', sans-serif !important;
-        font-size: 8px !important;
+        font-size: 14px !important;
         font-weight: 500 !important;
         line-height: 1 !important;
         color: #1f2937 !important;
