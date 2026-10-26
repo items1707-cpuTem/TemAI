@@ -40,6 +40,7 @@ st.markdown("""
         padding-top: 10px !important;
         padding-bottom: 10px !important;
         padding-left: 44px !important;
+        padding-right: 96px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -98,6 +99,30 @@ st.markdown("""
         top: 50% !important;
         transform: translateY(-50%) !important;
         z-index: 999 !important;
+    }
+
+    /* ปุ่มไมค์อัดเสียง: ถูกย้ายมาอยู่ข้างในกรอบช่องพิมพ์ข้อความ ทางขวาสุด (ติดกับปุ่มส่ง) แสดงเป็นไอคอนไมค์อย่างเดียว */
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] {
+        position: absolute !important;
+        right: 52px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 36px !important;
+        min-width: 36px !important;
+        height: 36px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        z-index: 999 !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] * {
+        background-color: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] label,
+    div[data-testid="stChatInput"] div[data-testid="stAudioInput"] small {
+        display: none !important;
     }
 
     /* ปุ่ม "+" วงกลมโปร่งใส ไม่มีกรอบ */
@@ -174,6 +199,14 @@ st.markdown("""
     div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button:hover {
         background-color: #f0f4f9 !important;
     }
+    /* ซ่อนทุกอย่างที่ไม่ใช่ปุ่ม และทำให้ตัวหนังสือทุกตัวในกล่องแนบไฟล์ (เช่นคำว่า Upload) มองไม่เห็น */
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] > *:not(button):not(:has(button)) {
+        display: none !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] * {
+        font-size: 0 !important;
+        color: transparent !important;
+    }
     /* ซ่อนตัวหนังสือ "Browse files" ทั้งหมดในปุ่ม แล้วแปะไอคอนอิโมจิแทน */
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderDropzone"] button > * {
         visibility: hidden !important;
@@ -191,15 +224,6 @@ st.markdown("""
     }
     div[data-testid="stVerticalBlock"]:has(> div > .attach-image-marker) div[data-testid="stFileUploaderDropzone"] button::after {
         content: "🖼️";
-    }
-    /* ปุ่มอัดเสียง: ใช้ไอคอนไมค์อิโมจิ (ตัวหนังสือ/ตัวเลขเวลาในวิดเจ็ตถูกซ่อนไว้แล้ว เวลาอัดดูได้ในช่องพิมพ์ข้อความ) */
-    div[data-testid="stVerticalBlock"]:has(> div > .attach-audio-marker) div[data-testid="stAudioInput"] button::before {
-        content: "🎙️";
-        font-size: 22px !important;
-        line-height: 1 !important;
-    }
-    div[data-testid="stPopoverBody"] div[data-testid="stAudioInput"] button > * {
-        display: none !important;
     }
     /* ไฟล์ที่แนบแล้ว: ซ่อนชื่อ/ขนาดไฟล์ทั้งหมด แสดงแค่เครื่องหมายถูก ✅ และปุ่ม ✕ สำหรับลบ */
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] {
@@ -428,11 +452,10 @@ with col_main:
                         "แนบรูปภาพ", type=["jpg", "jpeg", "png"], key="img_box", label_visibility="collapsed"
                     )
 
-                with st.container():
-                    st.markdown('<div class="attach-audio-marker"></div>', unsafe_allow_html=True)
-                    voice_recorder_data = st.audio_input(
-                        "อัดเสียง", key="voice_box", label_visibility="collapsed"
-                    )
+            # ปุ่มไมค์อัดเสียง (ถูกสคริปต์ย้ายไปอยู่ข้างในช่องพิมพ์ข้อความ ทางขวาสุด)
+            voice_recorder_data = st.audio_input(
+                "อัดเสียง", key="voice_box", label_visibility="collapsed"
+            )
 
         with col_input:
             # เครื่องหมายกำกับแถวนี้ไว้ ให้ CSS ด้านบนจำแถวได้แม่นยำ ไม่ไปชนกับคอลัมน์แถบประวัติด้านนอก
@@ -455,6 +478,10 @@ with col_main:
                     var pop = doc.querySelector('div[data-testid="stPopover"]');
                     if (chat && pop && !chat.contains(pop)) {
                         chat.appendChild(pop);
+                    }
+                    var mic = doc.querySelector('div[data-testid="stAudioInput"]');
+                    if (chat && mic && !chat.contains(mic)) {
+                        chat.appendChild(mic);
                     }
                 }
 
@@ -495,7 +522,21 @@ with col_main:
         """, height=0)
 
         # ระบบสั่งรันส่งคำถาม: ทำงานเมื่อมีการกด Enter ส่งข้อความ หรือตรวจพบสัญญาณเสียงพูดสดส่งเข้ามาสำเร็จ
-        if user_prompt or uploaded_image or voice_recorder_data or uploaded_file:
+        # ไฟล์/รูป/เสียงที่ส่งไปแล้ว จะไม่ถูกส่งซ้ำตอน Streamlit รันหน้าใหม่ (กันวนลูปส่งซ้ำไม่รู้จบ)
+        consumed_ids = st.session_state.setdefault("consumed_ids", set())
+
+        def _file_id(f):
+            return getattr(f, "file_id", None) or (f.name, f.size)
+
+        def _is_new(f):
+            return f is not None and _file_id(f) not in consumed_ids
+
+        uploaded_file = uploaded_file if _is_new(uploaded_file) else None
+        uploaded_image = uploaded_image if _is_new(uploaded_image) else None
+        voice_recorder_data = voice_recorder_data if _is_new(voice_recorder_data) else None
+
+        # ส่งเมื่อกด Enter (พร้อมไฟล์/รูปที่แนบไว้) หรือเมื่ออัดเสียงเสร็จ
+        if user_prompt or voice_recorder_data:
 
             # เตรียมข้อความที่จะแสดงในกล่องฝั่งผู้ใช้
             if user_prompt:
@@ -538,6 +579,10 @@ with col_main:
                         mime_type="audio/wav"
                     )
                 )
+
+            for _f in (uploaded_file, uploaded_image, voice_recorder_data):
+                if _f is not None:
+                    consumed_ids.add(_file_id(_f))
 
             # รวมบริบทประวัติแชทเดิมเป็นข้อความเดียว ก่อนส่งเข้าโมเดล
             full_context_string = "\n".join(
