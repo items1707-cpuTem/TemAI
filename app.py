@@ -209,28 +209,32 @@ st.markdown("""
         padding: 0 !important;
         min-height: 0 !important;
     }
-    /* ปุ่มเลือกไฟล์ในเมนู (เดิมเป็นปุ่มขอบขาวเขียนว่า "Upload"): ซ่อนตัวหนังสือทั้งหมด เหลือไอคอนอย่างเดียว
-       ใช้ได้ทั้งแบบมีกล่องลากวาง (dropzone) และแบบปุ่มเดี่ยว ๆ ของ Streamlit รุ่นใหม่ */
+    /* ปุ่มอัพโหลดในเมนู (เดิมเป็นปุ่มขอบขาวเขียนว่า "Upload"): ซ่อนตัวหนังสือ/ขอบเดิมทั้งหมด
+       แล้วสร้างเป็นแถวเมนูสวย ๆ = ไอคอนเส้นบาง + ข้อความภาษาไทย (ไอคอน/ข้อความใส่ด้วย CSS ตามลำดับปุ่ม) */
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] > *:not(:has(button)):not(button):not([data-testid="stFileUploaderFile"]) {
         display: none !important;
     }
+    div[data-testid="stPopoverBody"] {
+        min-width: 210px !important;
+    }
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button) {
-        width: 52px !important;
-        height: 48px !important;
+        width: 100% !important;
+        height: 46px !important;
         min-height: 0 !important;
-        padding: 0 !important;
-        margin: 0 auto !important;
+        padding: 0 14px !important;
+        margin: 0 !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 12px !important;
-        position: relative !important;
         overflow: hidden !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: center !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
         font-size: 0 !important;
         color: transparent !important;
+        cursor: pointer !important;
     }
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button):hover {
         background-color: #f0f4f9 !important;
@@ -238,21 +242,39 @@ st.markdown("""
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button) * {
         display: none !important;
     }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::before {
+        content: "" !important;
+        display: block !important;
+        flex: none !important;
+        width: 24px !important;
+        height: 24px !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-size: contain !important;
+    }
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        font-size: 26px !important;
+        display: block !important;
+        font-family: 'Sarabun', sans-serif !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
         line-height: 1 !important;
-        color: initial !important;
+        color: #1f2937 !important;
+        white-space: nowrap !important;
+        letter-spacing: 0.01em !important;
     }
-    div[data-testid="stVerticalBlock"]:has(> div > .attach-file-marker) div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
-        content: "📎";
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"][data-attach="file"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::before {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48'/></svg>") !important;
     }
-    div[data-testid="stVerticalBlock"]:has(> div > .attach-image-marker) div[data-testid="stFileUploader"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
-        content: "🖼️";
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"][data-attach="file"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
+        content: "อัพโหลดไฟล์" !important;
     }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"][data-attach="image"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::before {
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='3'/><circle cx='8.5' cy='8.5' r='1.5'/><path d='M21 15l-5-5L5 21'/></svg>") !important;
+    }
+    div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"][data-attach="image"] button:not([data-testid="stFileUploaderDeleteBtn"] button)::after {
+        content: "อัพโหลดรูปภาพ" !important;
+    }
+
     /* ไฟล์ที่แนบแล้ว: ซ่อนชื่อ/ขนาดไฟล์ทั้งหมด แสดงแค่เครื่องหมายถูก ✅ และปุ่ม ✕ สำหรับลบ */
     div[data-testid="stPopoverBody"] div[data-testid="stFileUploaderFile"] {
         font-size: 0 !important;
@@ -525,6 +547,12 @@ with col_main:
                 }
                 function tick() {
                     movePlus();
+                    // ติดป้ายให้ปุ่มอัพโหลดในเมนู + ตามลำดับ: อันแรก = ไฟล์, อันที่สอง = รูปภาพ
+                    var ups = doc.querySelectorAll('div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"]');
+                    for (var i = 0; i < ups.length; i++) {
+                        var want = (i === 0) ? 'file' : 'image';
+                        if (ups[i].getAttribute('data-attach') !== want) { ups[i].setAttribute('data-attach', want); }
+                    }
                     var ta = doc.querySelector('div[data-testid="stChatInput"] textarea');
                     if (!ta) { return; }
                     var rec = isRecording();
