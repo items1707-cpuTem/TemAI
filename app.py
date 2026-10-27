@@ -369,6 +369,20 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) div[data-testid="stVerticalBlock"] {
         gap: 0.2rem !important;
     }
+    /* แถบประวัติการค้นหาด้านซ้าย: ตรึงอยู่กับที่ ไม่เลื่อนตามเวลาแชทยาวขึ้นหรือ AI กำลังตอบ */
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
+        position: sticky !important;
+        top: 3.5rem !important;
+        align-self: flex-start !important;
+        height: fit-content !important;
+        max-height: calc(100vh - 5rem) !important;
+        overflow-y: auto !important;
+        z-index: 5 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) {
+        align-items: flex-start !important;
+    }
+
     .history-header {
         font-size: 12px !important;
         font-weight: 600;
