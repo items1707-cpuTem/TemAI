@@ -54,7 +54,7 @@ st.markdown("""
         padding-top: 10px !important;
         padding-bottom: 10px !important;
         padding-left: 44px !important;
-        padding-right: 104px !important;
+        padding-right: 56px !important;
     }
     
     label, p, span, h1, h2, h3, h4, h5, h6 {
@@ -146,10 +146,15 @@ st.markdown("""
         z-index: 999 !important;
     }
 
+    /* เอาปุ่มลูกศรส่งคำถามออก (ยังกด Enter เพื่อส่งได้ตามปกติ) ให้เหลือแต่ไมค์ */
+    div[data-testid="stChatInput"] button[data-testid="stChatInputSubmitButton"] {
+        display: none !important;
+    }
+
     /* ปุ่มไมค์อัดเสียง: ถูกย้ายมาอยู่ข้างในกรอบช่องพิมพ์ข้อความ ทางขวาสุด (ติดกับปุ่มส่ง) แสดงเป็นไอคอนไมค์อย่างเดียว */
     div[data-testid="stChatInput"] div[data-testid="stAudioInput"] {
         position: absolute !important;
-        right: 50px !important;
+        right: 8px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         width: 40px !important;
