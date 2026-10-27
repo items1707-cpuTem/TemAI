@@ -52,15 +52,22 @@ st.markdown("""
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
+    .user-row {
+        display: flex;
+        justify-content: flex-end;
+        margin: 12px 0;
+    }
     .user-bubble {
         background-color: #f0f4f9;
-        padding: 14px 20px;
+        padding: 12px 20px;
         border-radius: 15px;
-        margin: 12px 0;
-        border-right: 5px solid #1a7f64;
         color: #000000;
         font-size: 16px;
         line-height: 1.6;
+        width: fit-content;
+        max-width: 75%;
+        text-align: left;
+        word-break: break-word;
     }
     
     /* ดีไซน์กล่องคำตอบฝั่ง AI */
@@ -69,7 +76,6 @@ st.markdown("""
         padding: 16px 22px;
         border-radius: 15px;
         margin: 12px 0 25px 0;
-        border-left: 5px solid #10a37f;
         color: #000000;
         font-size: 16px;
         line-height: 1.6;
@@ -542,9 +548,11 @@ with col_main:
         with chat_container:
             if current_chat_history:
                 for message in current_chat_history:
-                    role = "👤 คุณ" if message["role"] == "user" else "🤖 AI"
-                    bubble_class = "user-bubble" if message["role"] == "user" else "ai-bubble"
-                    st.markdown(f"<div class='{bubble_class}'><b>{role}:</b><br>{format_bubble_text(message['text'])}</div>", unsafe_allow_html=True)
+                    if message["role"] == "user":
+                        # คำถามของผู้ใช้: ชิดขวาสุด มีแต่ตัวหนังสือ ไม่มีคำว่า "คุณ" หรือไอคอน
+                        st.markdown(f"<div class='user-row'><div class='user-bubble'>{format_bubble_text(message['text'])}</div></div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div class='ai-bubble'>{format_bubble_text(message['text'])}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(
                     """
