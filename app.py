@@ -37,7 +37,7 @@ st.markdown("""
     /* ปรับแต่งกล่องพิมพ์แชทหลักให้สูงโปร่ง สระวรรณยุกต์แยกชั้นชัดเจน ไม่ทับซ้อนกัน */
     /* เผื่อพื้นที่ซ้ายไว้ให้ปุ่ม "+" แนบไฟล์ ลอยซ้อนอยู่ข้างในกล่องพอดี ไม่ทับตัวหนังสือ */
     div[data-testid="stChatInput"] textarea {
-        font-size: 16px !important;  
+        font-size: 14px !important;  
         color: #000000 !important;
         line-height: 1.6 !important; 
         font-family: 'Sarabun', sans-serif !important;
@@ -62,7 +62,7 @@ st.markdown("""
         padding: 12px 20px;
         border-radius: 15px;
         color: #000000;
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.6;
         width: fit-content;
         max-width: 75%;
@@ -77,7 +77,7 @@ st.markdown("""
         border-radius: 15px;
         margin: 12px 0 25px 0;
         color: #000000;
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.6;
     }
     
@@ -88,13 +88,13 @@ st.markdown("""
        ========================================================== */
 
     /* คอลัมน์เดิมที่เคยเป็นที่อยู่ของปุ่ม + ไม่ต้องกินพื้นที่แถวอีกต่อไป เพราะปุ่มถูกย้ายเข้ากรอบแชทแล้ว */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) {
+    div[data-testid="stHorizontalBlock"]:has(.chat-input-row-marker):not(:has(div[data-testid="stHorizontalBlock"] .chat-input-row-marker)) {
         align-items: center !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
+    div[data-testid="stHorizontalBlock"]:has(.chat-input-row-marker):not(:has(div[data-testid="stHorizontalBlock"] .chat-input-row-marker)) > div:nth-child(1) {
         display: none !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > .chat-input-row-marker) > div[data-testid="stColumn"]:nth-of-type(2) {
+    div[data-testid="stHorizontalBlock"]:has(.chat-input-row-marker):not(:has(div[data-testid="stHorizontalBlock"] .chat-input-row-marker)) > div:nth-child(2) {
         width: 100% !important;
         flex: 1 1 auto !important;
     }
@@ -342,7 +342,7 @@ st.markdown("""
        แถบซ้าย: ปุ่มเริ่มใหม่ + ประวัติการค้นหา
        ไม่มีกล่อง/กรอบ ไม่มีไอคอนกวนใจ ตัวหนังสือเล็กกระชับ อยู่ติดกัน
        ========================================================== */
-    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div[data-testid="stColumn"]:nth-of-type(1) button {
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) button {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -370,7 +370,7 @@ st.markdown("""
         gap: 0.2rem !important;
     }
     /* แถบประวัติการค้นหาด้านซ้าย: ตรึงอยู่กับที่ ไม่เลื่อนตามเวลาแชทยาวขึ้นหรือ AI กำลังตอบ */
-    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div[data-testid="stColumn"]:nth-of-type(1) {
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) {
         position: sticky !important;
         top: 3.5rem !important;
         align-self: flex-start !important;
