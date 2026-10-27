@@ -1,5 +1,15 @@
 import streamlit as st
 import streamlit.components.v1 as components
+
+
+def _embed_script(html_str, height=0):
+    """ฝังสคริปต์ JavaScript เล็ก ๆ ลงหน้าเว็บ ใช้ st.iframe (ตัวใหม่) ถ้ามี ไม่งั้นถอยไปใช้ components.html (ตัวเก่า)"""
+    html_str = html_str.strip()
+    if hasattr(st, "iframe"):
+        st.iframe(html_str, height=1)
+    else:
+        components.html(html_str, height=height)
+
 import google.genai as genai
 from google.genai import types
 from PIL import Image
@@ -52,6 +62,27 @@ st.markdown("""
     }
     
     /* ดีไซน์กล่องข้อความฝั่งผู้ใช้ */
+    /* ปุ่ม "แก้ไข" ใต้กล่องคำถาม: ตัวเล็ก สีเทา ชิดขวา ไม่มีกรอบ */
+    div[class*="st-key-editbtn_"] {
+        display: flex !important;
+        justify-content: flex-end !important;
+        margin-top: -10px !important;
+    }
+    div[class*="st-key-editbtn_"] button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 2px 8px !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+    div[class*="st-key-editbtn_"] button p {
+        font-size: 12px !important;
+        color: #9aa0a8 !important;
+    }
+    div[class*="st-key-editbtn_"] button:hover p {
+        color: #1f2937 !important;
+    }
     .user-row {
         display: flex;
         justify-content: flex-end;
@@ -561,10 +592,33 @@ with col_main:
         chat_container = st.container()
         with chat_container:
             if current_chat_history:
-                for message in current_chat_history:
+                _sid = st.session_state.current_session_id
+                for _idx, message in enumerate(current_chat_history):
                     if message["role"] == "user":
-                        # คำถามของผู้ใช้: ชิดขวาสุด มีแต่ตัวหนังสือ ไม่มีคำว่า "คุณ" หรือไอคอน
-                        st.markdown(f"<div class='user-row'><div class='user-bubble'>{format_bubble_text(message['text'])}</div></div>", unsafe_allow_html=True)
+                        _can_edit = not message["text"].startswith(("📎", "🎙️"))
+                        if _can_edit and st.session_state.get("editing_idx") == (_sid, _idx):
+                            # โหมดแก้ไขข้อความที่ส่งไปแล้ว: แก้แล้วกด "ส่งใหม่" AI จะตอบใหม่จากข้อความที่แก้
+                            _new_text = st.text_area(
+                                "แก้ไขข้อความ", value=message["text"], key=f"edit_area_{_sid}_{_idx}",
+                                label_visibility="collapsed"
+                            )
+                            _c_send, _c_cancel, _ = st.columns([1, 1, 5])
+                            if _c_send.button("ส่งใหม่", key=f"edit_send_{_sid}_{_idx}", type="primary"):
+                                if _new_text.strip():
+                                    del current_chat_history[_idx:]  # ลบข้อความนี้และคำตอบหลังจากนี้ออก
+                                    st.session_state.pending_prompt = _new_text.strip()
+                                    st.session_state.editing_idx = None
+                                    save_all_chats_to_disk(st.session_state.all_chats)
+                                    st.rerun()
+                            if _c_cancel.button("ยกเลิก", key=f"edit_cancel_{_sid}_{_idx}"):
+                                st.session_state.editing_idx = None
+                                st.rerun()
+                        else:
+                            # คำถามของผู้ใช้: ชิดขวาสุด มีแต่ตัวหนังสือ ไม่มีคำว่า "คุณ" หรือไอคอน
+                            st.markdown(f"<div class='user-row'><div class='user-bubble'>{format_bubble_text(message['text'])}</div></div>", unsafe_allow_html=True)
+                            if _can_edit and st.button("✏️ แก้ไข", key=f"editbtn_{_sid}_{_idx}"):
+                                st.session_state.editing_idx = (_sid, _idx)
+                                st.rerun()
                     else:
                         st.markdown(f"<div class='ai-bubble'>{format_bubble_text(message['text'])}</div>", unsafe_allow_html=True)
             else:
@@ -624,7 +678,7 @@ with col_main:
 
         # 🕒 สคริปต์คอยตรวจจับว่ากำลังอัดเสียงอยู่หรือไม่ แล้วโชว์จำนวนวินาทีที่อัดไปแล้ว
         # เป็นข้อความ placeholder ในช่องพิมพ์ข้อความ (เมื่ออัดเสร็จ/หยุด จะคืนข้อความเดิมอัตโนมัติ)
-        components.html("""
+        _embed_script("""
             <script>
             (function() {
                 var P = window.parent;
@@ -654,8 +708,26 @@ with col_main:
                     var r = el.getBoundingClientRect();
                     return r.width > 0 && r.height > 0;
                 }
+                // ตรึงแถวช่องพิมพ์ไว้ที่ขอบล่างของจอ เลื่อนดูแชทไปไกลแค่ไหนก็พิมพ์คำถามต่อได้ทันที
+                function pinInput() {
+                    var mk = doc.querySelector('.chat-input-row-marker');
+                    if (!mk) { return; }
+                    var el = mk.closest('[data-testid="stHorizontalBlock"]');
+                    while (el && el.parentElement && el.parentElement.getAttribute('data-testid') !== 'stVerticalBlock') {
+                        el = el.parentElement;
+                    }
+                    if (el) {
+                        el.style.position = 'sticky';
+                        el.style.bottom = '0';
+                        el.style.zIndex = '40';
+                        el.style.background = '#ffffff';
+                        el.style.padding = '8px 0 14px 0';
+                    }
+                }
+
                 function tick() {
                     movePlus();
+                    pinInput();
                     // ติดป้ายให้ปุ่มอัพโหลดในเมนู + ตามลำดับ: อันแรก = ไฟล์, อันที่สอง = รูปภาพ
                     var ups = doc.querySelectorAll('div[data-testid="stPopoverBody"] div[data-testid="stFileUploader"]');
                     for (var i = 0; i < ups.length; i++) {
@@ -707,6 +779,10 @@ with col_main:
         uploaded_file = uploaded_file if _is_new(uploaded_file) else None
         uploaded_image = uploaded_image if _is_new(uploaded_image) else None
         voice_recorder_data = voice_recorder_data if _is_new(voice_recorder_data) else None
+
+        # ข้อความที่เพิ่งแก้ไขแล้วกด "ส่งใหม่" จะถูกส่งต่อเข้าระบบตรงนี้
+        if not user_prompt and st.session_state.get("pending_prompt"):
+            user_prompt = st.session_state.pop("pending_prompt")
 
         # ส่งเมื่อกด Enter (พร้อมไฟล์/รูปที่แนบไว้) หรือเมื่ออัดเสียงเสร็จ
         if user_prompt or voice_recorder_data:
