@@ -743,7 +743,7 @@ with col_main:
             with st.spinner("🤖 กำลังคิดคำตอบ..."):
                 client = genai.Client(api_key=api_key)
                 ai_text = None
-                max_retries = 4
+                max_retries = 5
                 last_error = None
                 use_search = True  # เปิดการค้นหาข้อมูลล่าสุดจาก Google ถ้าใช้ไม่ได้จะปิดแล้วลองใหม่เอง
 
@@ -768,11 +768,21 @@ with col_main:
                         last_error = e
                         error_text = str(e)
                         # เช็กว่าเป็น error ชั่วคราว (503 โมเดลคนใช้เยอะ / 429 คำขอถี่เกินไป) หรือไม่
-                        is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
+                        is_quota = ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
+                        is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or is_quota
+
+                        if is_quota and use_search:
+                            # โควตาการค้นหาจาก Google มักน้อยกว่าโควตาแชทปกติ ปิดการค้นหาแล้วลองใหม่ทันที
+                            use_search = False
+                            st.toast("🔎 โควตาการค้นหาเต็ม ตอบโดยไม่ค้นหาอินเทอร์เน็ตแทน")
+                            continue
 
                         if is_temporary and attempt < max_retries - 1:
                             wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
-                            st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่อีกครั้ง ({attempt + 1}/{max_retries - 1})...")
+                            if is_quota:
+                                st.toast(f"⏳ ใช้โควตาฟรีเต็มชั่วคราว กำลังลองใหม่ ({attempt + 1}/{max_retries - 1})...")
+                            else:
+                                st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่ ({attempt + 1}/{max_retries - 1})...")
                             time.sleep(wait_seconds)
                             continue
                         elif use_search and not is_temporary:
@@ -786,7 +796,8 @@ with col_main:
                     if ("503" in error_text) or ("UNAVAILABLE" in error_text):
                         ai_text = "⚠️ ขออภัยครับ ตอนนี้เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นมาก ลองพิมพ์คำถามส่งใหม่อีกครั้งในอีกสักครู่นะครับ"
                     elif ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text):
-                        ai_text = "⚠️ ส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้งครับ"
+                        ai_text = ("⚠️ โควตาการใช้งาน Gemini ของคีย์นี้เต็มแล้ว (ส่งถี่เกินไปหรือใช้ครบโควตารายวัน) "
+                                   "ลองรอ 1-2 นาทีแล้วส่งใหม่ หากยังไม่ได้ อาจต้องรอรีเซ็ตโควตาของวันถัดไป หรือเปลี่ยนไปใช้ API key อื่น")
                     else:
                         ai_text = f"⚠️ เกิดข้อผิดพลาด: {last_error}"
 
