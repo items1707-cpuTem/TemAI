@@ -410,13 +410,53 @@ st.markdown("""
         position: sticky !important;
         top: 3.5rem !important;
         align-self: flex-start !important;
-        height: fit-content !important;
-        max-height: calc(100vh - 5rem) !important;
+        height: calc(100vh - 6rem) !important;
+        max-height: calc(100vh - 6rem) !important;
         overflow-y: auto !important;
         z-index: 5 !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) {
         align-items: flex-start !important;
+    }
+
+    /* ปุ่ม "ล้างประวัติทั้งหมด": ดันลงไปอยู่ล่างสุดของแถบซ้าย เป็นปุ่มกรอบบาง มุมมน มีไอคอนถังขยะ */
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[data-testid="stVerticalBlock"] {
+        min-height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] {
+        margin-top: auto !important;
+        padding-bottom: 6px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] button {
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        background: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px !important;
+        padding: 8px 12px !important;
+        box-shadow: none !important;
+        transition: background 0.15s, border-color 0.15s !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] button::before {
+        content: "" !important;
+        flex: none !important;
+        width: 15px !important;
+        height: 15px !important;
+        background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18'/><path d='M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6M14 11v6'/></svg>") center / contain no-repeat !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] button p {
+        font-size: 13px !important;
+        color: #6b7280 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] button:hover {
+        background: #fef2f2 !important;
+        border-color: #fecaca !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.history-panel-marker) > div:nth-child(1) div[class*="st-key-clear_all_btn"] button:hover p {
+        color: #dc2626 !important;
     }
 
     .history-header {
@@ -470,12 +510,18 @@ def build_system_instruction():
         "4) ถ้าข้อมูลเปลี่ยนตามเวลา (ข่าว ราคา ผลกีฬา ฯลฯ) ให้ค้นหาข้อมูลล่าสุดก่อนตอบ\n"
         "5) ถ้าไม่แน่ใจหรือไม่ทราบ ให้บอกตรง ๆ อย่าแต่งข้อมูล\n"
         "6) ถ้าคำถามกำกวมจริง ๆ ให้ถามกลับสั้น ๆ หนึ่งข้อ\n"
-        "7) กระชับ ชัดเจน อ่านง่าย"
+        "7) กระชับ ชัดเจน อ่านง่าย\n"
+        "8) ห้ามใช้เส้นคั่น เช่น --- หรือ *** ในคำตอบ"
     )
 
 def format_bubble_text(text):
     """แปลงข้อความ (มาร์กดาวน์แบบง่าย) เป็น HTML สำหรับแสดงในกล่องแชท เช่น **ตัวหนา** ไม่ให้โชว์เป็นดอกจัน"""
     t = html.escape(text)
+    # ลบเส้นคั่น (---, ***, ___) ที่โมเดลชอบใส่ออกทั้งบรรทัด และยุบบรรทัดว่างที่เหลือไม่ให้ห่างเกินไป
+    t = re.sub(r"^[ \t]*([-*_])(?:[ \t]*\1){2,}[ \t]*$", "", t, flags=re.M)
+    t = re.sub(r"^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$", "", t, flags=re.M)  # แถวคั่นหัวตาราง |---|---|
+    t = re.sub(r"(?<![\w-])-{3,}(?![\w-])", "", t)  # --- ที่แทรกอยู่กลางบรรทัด
+    t = re.sub(r"\n{3,}", "\n\n", t).strip("\n")
     t = re.sub(r"^\s*#{1,6}\s*(.+)$", r"<b>\1</b>", t, flags=re.M)
     t = re.sub(r"^\s*[\*\-]\s+", "• ", t, flags=re.M)
     t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t, flags=re.S)
@@ -612,7 +658,6 @@ with col_history:
             st.session_state.current_session_id = session_id
             st.rerun()
 
-    st.markdown('<div style="margin-top: 10px;"></div>', unsafe_allow_html=True)
     if st.button("ล้างประวัติทั้งหมด", key="clear_all_btn"):
         st.session_state.all_chats = {}
         st.session_state.current_session_id = f"Chat_{int(time.time())}"
