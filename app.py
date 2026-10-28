@@ -483,12 +483,51 @@ def format_bubble_text(text):
     t = re.sub(r"`([^`\n]+)`", r"<code>\1</code>", t)
     return t.replace("\n", "<br>")
 
+OLD_FAIL_TEXT = "ขออภัยครับ ผมยังไม่สามารถตอบคำถามนี้ได้"
+
+def is_failed_reply(text):
+    """ข้อความตอบกลับที่เป็นข้อความผิดพลาด (ไม่ควรส่งกลับไปให้โมเดลอ่านเป็นประวัติ เดี๋ยวโมเดลจะเลียนแบบการปฏิเสธ)"""
+    return text.startswith("⚠️") or text.startswith(OLD_FAIL_TEXT)
+
+def extract_text(response):
+    """ดึงข้อความคำตอบจากผลลัพธ์ของ Gemini ถ้าว่างจะคืนสาเหตุกลับมาด้วย (เช่น ถูกบล็อก หรือโมเดลหยุดกลางคัน)"""
+    try:
+        text = response.text
+        if text and text.strip():
+            return text, None
+    except Exception:
+        pass
+    reasons = []
+    try:
+        feedback = getattr(response, "prompt_feedback", None)
+        if feedback is not None and getattr(feedback, "block_reason", None):
+            reasons.append(f"ถูกบล็อก: {feedback.block_reason}")
+        candidates = getattr(response, "candidates", None) or []
+        if candidates:
+            cand = candidates[0]
+            parts = getattr(getattr(cand, "content", None), "parts", None) or []
+            texts = [p.text for p in parts if getattr(p, "text", None) and not getattr(p, "thought", False)]
+            if texts:
+                return "".join(texts), None
+            if getattr(cand, "finish_reason", None):
+                reasons.append(f"finish_reason={cand.finish_reason}")
+        else:
+            reasons.append("ไม่มีคำตอบกลับมาเลย")
+    except Exception as e:
+        reasons.append(str(e))
+    return None, ", ".join(reasons) or "ไม่ทราบสาเหตุ"
+
 def build_contents(history_before, content_parts):
     """ส่งประวัติการคุยก่อนหน้าไปด้วย (เดิมส่งแค่ข้อความล่าสุด โมเดลเลยไม่จำบริบทและตอบไม่ตรง)"""
     contents = []
     for msg in history_before[-20:]:
         text = msg.get("text", "")
-        if not text or text.startswith("⚠️"):
+        if not text:
+            continue
+        if msg["role"] != "user" and is_failed_reply(text):
+            # คำตอบที่ล้มเหลว: ตัดทิ้งพร้อมคำถามที่เป็นต้นเหตุ ไม่ให้ประวัติมีคำถามซ้อนกันหรือคำปฏิเสธปนอยู่
+            if contents and contents[-1].role == "user":
+                contents.pop()
             continue
         role = "user" if msg["role"] == "user" else "model"
         contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
@@ -863,10 +902,16 @@ with col_main:
                             contents=build_contents(current_chat_history[:-1], content_parts),
                             config=types.GenerateContentConfig(**config_kwargs),
                         )
-                        ai_text = response.text
-                        if not ai_text:
-                            ai_text = "ขออภัยครับ ผมยังไม่สามารถตอบคำถามนี้ได้ ลองถามใหม่อีกครั้งด้วยคำอื่นดูนะครับ"
-                        break  # สำเร็จแล้ว ออกจากลูปทันที
+                        ai_text, empty_reason = extract_text(response)
+                        if ai_text:
+                            break  # สำเร็จแล้ว ออกจากลูปทันที
+                        # โมเดลไม่ส่งข้อความกลับมา: ลองใหม่แบบไม่ค้นหา (เครื่องมือค้นหาอาจทำให้คำตอบว่าง) ถ้ายังว่างค่อยแจ้งสาเหตุ
+                        if use_search:
+                            use_search = False
+                            st.toast("🔎 ค้นหาไม่ได้ผล ตอบโดยไม่ค้นหาอินเทอร์เน็ตแทน")
+                            continue
+                        ai_text = f"⚠️ โมเดลไม่ส่งคำตอบกลับมา ({empty_reason}) ลองถามใหม่อีกครั้งด้วยคำอื่นดูนะครับ"
+                        break
                     except Exception as e:
                         last_error = e
                         error_text = str(e)
