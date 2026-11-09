@@ -10,8 +10,6 @@ def _embed_script(html_str, height=0):
     else:
         components.html(html_str, height=height)
 
-import google.genai as genai
-from google.genai import types
 from PIL import Image
 import time
 import os
@@ -19,11 +17,14 @@ import pickle
 import io
 import re
 import html
+import base64
+import json
+import requests
 from datetime import datetime, timezone, timedelta
 
 # 1. ตั้งค่าหน้าเว็บสไตล์ ChatGPT Light Mode
 st.set_page_config(
-    page_title="Gemini Chatbot AI",
+    page_title="Local AI Chatbot",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -507,7 +508,7 @@ def build_system_instruction():
         "1) ตอบให้ตรงกับสิ่งที่ผู้ใช้ถาม ตรงประเด็นก่อน แล้วค่อยเสริมรายละเอียดที่จำเป็น\n"
         "2) ตอบเป็นภาษาเดียวกับที่ผู้ใช้ใช้ถาม (ถ้าถามไทยให้ตอบไทย)\n"
         "3) ใช้บทสนทนาก่อนหน้าเป็นบริบทต่อเนื่อง ถ้าผู้ใช้ถามต่อหรืออ้างถึงสิ่งที่คุยกันไปแล้ว\n"
-        "4) ถ้าข้อมูลเปลี่ยนตามเวลา (ข่าว ราคา ผลกีฬา ฯลฯ) ให้ค้นหาข้อมูลล่าสุดก่อนตอบ\n"
+        "4) หากไม่มีเครื่องมือค้นหาอินเทอร์เน็ต ให้แจ้งว่าคุณไม่สามารถยืนยันข้อมูลล่าสุดได้\n"
         "5) ถ้าไม่แน่ใจหรือไม่ทราบ ให้บอกตรง ๆ อย่าแต่งข้อมูล\n"
         "6) ถ้าคำถามกำกวมจริง ๆ ให้ถามกลับสั้น ๆ หนึ่งข้อ\n"
         "7) กระชับ ชัดเจน อ่านง่าย\n"
@@ -536,62 +537,93 @@ def is_failed_reply(text):
     return text.startswith("⚠️") or text.startswith(OLD_FAIL_TEXT)
 
 def extract_text(response):
-    """ดึงข้อความคำตอบจากผลลัพธ์ของ Gemini ถ้าว่างจะคืนสาเหตุกลับมาด้วย (เช่น ถูกบล็อก หรือโมเดลหยุดกลางคัน)"""
+    """Compatibility helper retained for the existing app; Ollama responses are parsed directly below."""
     try:
-        text = response.text
-        if text and text.strip():
-            return text, None
-    except Exception:
-        pass
-    reasons = []
-    try:
-        feedback = getattr(response, "prompt_feedback", None)
-        if feedback is not None and getattr(feedback, "block_reason", None):
-            reasons.append(f"ถูกบล็อก: {feedback.block_reason}")
-        candidates = getattr(response, "candidates", None) or []
-        if candidates:
-            cand = candidates[0]
-            parts = getattr(getattr(cand, "content", None), "parts", None) or []
-            texts = [p.text for p in parts if getattr(p, "text", None) and not getattr(p, "thought", False)]
-            if texts:
-                return "".join(texts), None
-            if getattr(cand, "finish_reason", None):
-                reasons.append(f"finish_reason={cand.finish_reason}")
-        else:
-            reasons.append("ไม่มีคำตอบกลับมาเลย")
+        text = response.get("message", {}).get("content", "")
+        return (text, None) if text.strip() else (None, "โมเดลไม่ส่งข้อความกลับมา")
     except Exception as e:
-        reasons.append(str(e))
-    return None, ", ".join(reasons) or "ไม่ทราบสาเหตุ"
+        return None, str(e)
 
-def build_contents(history_before, content_parts):
-    """ส่งประวัติการคุยก่อนหน้าไปด้วย (เดิมส่งแค่ข้อความล่าสุด โมเดลเลยไม่จำบริบทและตอบไม่ตรง)"""
-    contents = []
-    for msg in history_before[-20:]:
+
+def read_uploaded_document(uploaded_file):
+    """อ่านไฟล์ข้อความทั่วไปในเครื่อง โดยไม่ส่งไฟล์ไปยังบริการ AI ภายนอก"""
+    name = (uploaded_file.name or "").lower()
+    data = uploaded_file.getvalue()
+    if name.endswith((".txt", ".md", ".csv", ".json", ".py", ".js", ".html", ".css", ".xml", ".log", ".yaml", ".yml")):
+        return data.decode("utf-8", errors="replace")
+    if name.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(data))
+            return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        except ImportError:
+            raise RuntimeError("อ่าน PDF ต้องติดตั้ง pypdf: pip install pypdf")
+    if name.endswith(".docx"):
+        try:
+            from docx import Document
+            doc = Document(io.BytesIO(data))
+            return "\n".join(p.text for p in doc.paragraphs).strip()
+        except ImportError:
+            raise RuntimeError("อ่าน DOCX ต้องติดตั้ง python-docx: pip install python-docx")
+    raise RuntimeError("ไฟล์ชนิดนี้ยังไม่รองรับ กรุณาใช้ TXT, MD, CSV, JSON, PDF หรือ DOCX")
+
+
+@st.cache_resource(show_spinner=False)
+def load_local_whisper_model():
+    """โหลดโมเดลถอดเสียงในเครื่องเมื่อมีการติดตั้ง faster-whisper (ดาวน์โหลดโมเดลครั้งแรก)"""
+    from faster_whisper import WhisperModel
+    return WhisperModel("base", device="cpu", compute_type="int8")
+
+
+def transcribe_audio_locally(audio_file):
+    """ถอดเสียงด้วยโมเดล Whisper ที่รันในเครื่อง ไม่ส่งเสียงไปยัง API ภายนอก"""
+    try:
+        model = load_local_whisper_model()
+    except ImportError as e:
+        raise RuntimeError("ยังไม่ได้ติดตั้งระบบถอดเสียงในเครื่อง ให้รัน: pip install faster-whisper") from e
+    segments, _info = model.transcribe(io.BytesIO(audio_file.getvalue()), language="th", vad_filter=True)
+    return " ".join(segment.text.strip() for segment in segments).strip()
+
+
+def ask_ollama(history, prompt, system_instruction, image_b64=None, model=None):
+    """เรียก Ollama API ที่รันอยู่ในเครื่อง (ไม่ใช้ AI API ภายนอก)"""
+    base_url = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    model = model or os.environ.get("OLLAMA_MODEL", "qwen2.5vl:3b")
+    messages = [{"role": "system", "content": system_instruction}]
+    for msg in history[-20:]:
         text = msg.get("text", "")
-        if not text:
+        if not text or is_failed_reply(text):
             continue
-        if msg["role"] != "user" and is_failed_reply(text):
-            # คำตอบที่ล้มเหลว: ตัดทิ้งพร้อมคำถามที่เป็นต้นเหตุ ไม่ให้ประวัติมีคำถามซ้อนกันหรือคำปฏิเสธปนอยู่
-            if contents and contents[-1].role == "user":
-                contents.pop()
-            continue
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
-
-    parts = []
-    for item in content_parts:
-        if isinstance(item, str):
-            parts.append(types.Part.from_text(text=item))
-        elif isinstance(item, Image.Image):
-            buf = io.BytesIO()
-            item.convert("RGB").save(buf, format="JPEG")
-            parts.append(types.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg"))
-        else:
-            parts.append(item)
-    if not any(isinstance(p.text, str) and p.text for p in parts if hasattr(p, "text")):
-        parts.append(types.Part.from_text(text="โปรดตอบหรือช่วยเหลือตามไฟล์/เสียง/รูปภาพที่แนบมา"))
-    contents.append(types.Content(role="user", parts=parts))
-    return contents
+        role = "user" if msg.get("role") == "user" else "assistant"
+        messages.append({"role": role, "content": text})
+    current = {"role": "user", "content": prompt or "โปรดช่วยวิเคราะห์ไฟล์ที่แนบมา"}
+    if image_b64:
+        current["images"] = [image_b64]
+    messages.append(current)
+    try:
+        response = requests.post(
+            f"{base_url}/api/chat",
+            json={"model": model, "messages": messages, "stream": False,
+                  "options": {"temperature": 0.6}},
+            timeout=(10, 600),
+        )
+        response.raise_for_status()
+        data = response.json()
+        answer = data.get("message", {}).get("content", "").strip()
+        if not answer:
+            raise RuntimeError("Ollama ส่งคำตอบว่างกลับมา")
+        return answer
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError("เชื่อมต่อ Ollama ไม่ได้ กรุณาเปิด Ollama และตรวจสอบว่า Ollama ทำงานอยู่ที่ " + base_url) from e
+    except requests.exceptions.Timeout as e:
+        raise RuntimeError("โมเดลใช้เวลาตอบนานเกินไป ลองใช้โมเดลเล็กลงหรือถามคำถามสั้นลง") from e
+    except requests.exceptions.HTTPError as e:
+        detail = ""
+        try:
+            detail = response.json().get("error", "")
+        except Exception:
+            pass
+        raise RuntimeError(f"Ollama API ตอบข้อผิดพลาด: {detail or e}") from e
 
 def save_all_chats_to_disk(all_chats):
     try:
@@ -614,8 +646,11 @@ def load_all_chats_from_disk():
             return {}
     return {}
 
-# 🔑 ดึงรหัส API Key จากระบบ Secrets หลังบ้านอัตโนมัติ
-api_key = st.secrets.get("GEMINI_API_KEY", "")
+# 🧠 ตั้งค่าโมเดลที่รันในเครื่องผ่าน Ollama
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+active_model = os.environ.get("OLLAMA_MODEL", "qwen2.5vl:3b")
+# ไม่ต้องใช้ API key เพราะโมเดลรันบนเครื่อง/เซิร์ฟเวอร์ของเราเอง
+api_key = "local-ollama"
 
 # เตรียมหน่วยความจำแชทหลัก
 if "all_chats" not in st.session_state:
@@ -672,9 +707,8 @@ with col_main:
     # 3. พื้นที่แสดงเนื้อหาหลัก
 
     if not api_key:
-        st.error("⚠️ ไม่พบรหัสผ่านระบบหลังบ้าน! กรุณาเพิ่มข้อมูล GEMINI_API_KEY ในหน้า Secrets ของเว็บ Streamlit Cloud ก่อนใช้งานครับ")
+        st.error("⚠️ ไม่พบการตั้งค่าโมเดล AI")
     else:
-        active_model = "gemini-3.6-flash"
         current_chat_history = st.session_state.all_chats[st.session_state.current_session_id]
 
         # กระดานแสดงผลหน้าจอแชทกลางเว็บ
@@ -889,110 +923,63 @@ with col_main:
             # เพิ่มข้อความผู้ใช้เข้าประวัติแชท
             current_chat_history.append({"role": "user", "text": display_text})
 
-            # เตรียมเนื้อหาที่จะส่งเข้า Gemini API (ข้อความ + ไฟล์แนบถ้ามี)
-            content_parts = []
-
+            # เตรียมข้อมูลสำหรับ Ollama: ข้อความ, รูปภาพ (ต้องใช้ vision model), และเอกสารข้อความ
+            prompt_parts = []
+            image_b64 = None
             if user_prompt:
-                content_parts.append(user_prompt)
+                prompt_parts.append(user_prompt)
 
             if uploaded_image is not None:
-                image = Image.open(uploaded_image)
-                content_parts.append(image)
+                try:
+                    image = Image.open(uploaded_image).convert("RGB")
+                    image_buffer = io.BytesIO()
+                    image.save(image_buffer, format="JPEG", quality=90)
+                    image_b64 = base64.b64encode(image_buffer.getvalue()).decode("ascii")
+                    prompt_parts.append("โปรดดูและวิเคราะห์รูปภาพที่แนบมาด้วย")
+                except Exception as e:
+                    prompt_parts.append(f"[อ่านรูปภาพไม่สำเร็จ: {e}]")
 
             if uploaded_file is not None:
-                file_bytes = uploaded_file.read()
-                file_mime = uploaded_file.type or "application/octet-stream"
-                content_parts.append(
-                    types.Part.from_bytes(
-                        data=file_bytes,
-                        mime_type=file_mime
-                    )
-                )
+                try:
+                    document_text = read_uploaded_document(uploaded_file)
+                    if document_text:
+                        # ป้องกันเอกสารขนาดใหญ่มากเกินไปสำหรับโมเดลในเครื่อง
+                        prompt_parts.append(f"เนื้อหาจากไฟล์ {uploaded_file.name}:\n{document_text[:30000]}")
+                    else:
+                        prompt_parts.append(f"ไฟล์ {uploaded_file.name} ไม่มีข้อความที่อ่านได้")
+                except Exception as e:
+                    prompt_parts.append(f"ไม่สามารถอ่านไฟล์ {uploaded_file.name}: {e}")
 
             if voice_recorder_data is not None:
-                audio_bytes = voice_recorder_data.read()
-                content_parts.append(
-                    types.Part.from_bytes(
-                        data=audio_bytes,
-                        mime_type="audio/wav"
-                    )
-                )
+                try:
+                    transcript = transcribe_audio_locally(voice_recorder_data)
+                    if transcript:
+                        prompt_parts.append("ข้อความที่ถอดจากเสียง: " + transcript)
+                    else:
+                        prompt_parts.append("ไม่พบคำพูดที่ถอดเสียงได้จากไฟล์เสียงนี้")
+                except Exception as e:
+                    prompt_parts.append(f"ไม่สามารถถอดเสียงในเครื่องได้: {e}")
+                    st.warning(str(e))
 
             for _f in (uploaded_file, uploaded_image, voice_recorder_data):
                 if _f is not None:
                     consumed_ids.add(_file_id(_f))
 
-            # รวมบริบทประวัติแชทเดิมเป็นข้อความเดียว ก่อนส่งเข้าโมเดล
-            full_context_string = "\n".join(
-                [f"{msg['role']}: {msg['text']}" for msg in current_chat_history[:-1]]
-            )
+            prompt_text = "\n\n".join(part for part in prompt_parts if part.strip())
+            # ไม่ส่งป้ายชื่อไฟล์จากประวัติเป็นข้อความจริงแทนเนื้อหาไฟล์
+            history_for_model = current_chat_history[:-1]
 
-            with st.spinner("🤖 กำลังคิดคำตอบ..."):
-                client = genai.Client(api_key=api_key)
-                ai_text = None
-                max_retries = 5
-                last_error = None
-                use_search = True  # เปิดการค้นหาข้อมูลล่าสุดจาก Google ถ้าใช้ไม่ได้จะปิดแล้วลองใหม่เอง
-
-                for attempt in range(max_retries):
-                    try:
-                        config_kwargs = dict(
-                            system_instruction=build_system_instruction(),
-                            temperature=0.6,
-                        )
-                        if use_search:
-                            config_kwargs["tools"] = [types.Tool(google_search=types.GoogleSearch())]
-                        response = client.models.generate_content(
-                            model=active_model,
-                            contents=build_contents(current_chat_history[:-1], content_parts),
-                            config=types.GenerateContentConfig(**config_kwargs),
-                        )
-                        ai_text, empty_reason = extract_text(response)
-                        if ai_text:
-                            break  # สำเร็จแล้ว ออกจากลูปทันที
-                        # โมเดลไม่ส่งข้อความกลับมา: ลองใหม่แบบไม่ค้นหา (เครื่องมือค้นหาอาจทำให้คำตอบว่าง) ถ้ายังว่างค่อยแจ้งสาเหตุ
-                        if use_search:
-                            use_search = False
-                            st.toast("🔎 ค้นหาไม่ได้ผล ตอบโดยไม่ค้นหาอินเทอร์เน็ตแทน")
-                            continue
-                        ai_text = f"⚠️ โมเดลไม่ส่งคำตอบกลับมา ({empty_reason}) ลองถามใหม่อีกครั้งด้วยคำอื่นดูนะครับ"
-                        break
-                    except Exception as e:
-                        last_error = e
-                        error_text = str(e)
-                        # เช็กว่าเป็น error ชั่วคราว (503 โมเดลคนใช้เยอะ / 429 คำขอถี่เกินไป) หรือไม่
-                        is_quota = ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text)
-                        is_temporary = ("503" in error_text) or ("UNAVAILABLE" in error_text) or is_quota
-
-                        if is_quota and use_search:
-                            # โควตาการค้นหาจาก Google มักน้อยกว่าโควตาแชทปกติ ปิดการค้นหาแล้วลองใหม่ทันที
-                            use_search = False
-                            st.toast("🔎 โควตาการค้นหาเต็ม ตอบโดยไม่ค้นหาอินเทอร์เน็ตแทน")
-                            continue
-
-                        if is_temporary and attempt < max_retries - 1:
-                            wait_seconds = 2 ** attempt  # รอเพิ่มขึ้นเรื่อย ๆ: 1, 2, 4, 8 วินาที
-                            if is_quota:
-                                st.toast(f"⏳ ใช้โควตาฟรีเต็มชั่วคราว กำลังลองใหม่ ({attempt + 1}/{max_retries - 1})...")
-                            else:
-                                st.toast(f"⏳ เซิร์ฟเวอร์มีผู้ใช้งานเยอะ กำลังลองใหม่ ({attempt + 1}/{max_retries - 1})...")
-                            time.sleep(wait_seconds)
-                            continue
-                        elif use_search and not is_temporary:
-                            use_search = False  # อาจเป็นเพราะเครื่องมือค้นหาใช้ไม่ได้ ลองใหม่แบบไม่ค้นหา
-                            continue
-                        else:
-                            break
-
-                if ai_text is None:
-                    error_text = str(last_error)
-                    if ("503" in error_text) or ("UNAVAILABLE" in error_text):
-                        ai_text = "⚠️ ขออภัยครับ ตอนนี้เซิร์ฟเวอร์ AI มีผู้ใช้งานหนาแน่นมาก ลองพิมพ์คำถามส่งใหม่อีกครั้งในอีกสักครู่นะครับ"
-                    elif ("429" in error_text) or ("RESOURCE_EXHAUSTED" in error_text):
-                        ai_text = ("⚠️ โควตาการใช้งาน Gemini ของคีย์นี้เต็มแล้ว (ส่งถี่เกินไปหรือใช้ครบโควตารายวัน) "
-                                   "ลองรอ 1-2 นาทีแล้วส่งใหม่ หากยังไม่ได้ อาจต้องรอรีเซ็ตโควตาของวันถัดไป หรือเปลี่ยนไปใช้ API key อื่น")
-                    else:
-                        ai_text = f"⚠️ เกิดข้อผิดพลาด: {last_error}"
+            with st.spinner("🤖 กำลังคิดคำตอบด้วยโมเดลในเครื่อง..."):
+                try:
+                    ai_text = ask_ollama(
+                        history=history_for_model,
+                        prompt=prompt_text,
+                        system_instruction=build_system_instruction(),
+                        image_b64=image_b64,
+                        model=active_model,
+                    )
+                except Exception as e:
+                    ai_text = f"⚠️ {e}"
 
             # เพิ่มคำตอบ AI เข้าประวัติแชท
             current_chat_history.append({"role": "assistant", "text": ai_text})
